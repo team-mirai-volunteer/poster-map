@@ -45,6 +45,12 @@ export default function Home() {
           </Link>
         </div>
 
+        <div className="list-group mb-4">
+          <Link href="/posting" className="list-group-item list-group-item-action">
+            posting
+          </Link>
+        </div>
+
         <div>
           <a 
             href="https://takahiroanno.com/" 
