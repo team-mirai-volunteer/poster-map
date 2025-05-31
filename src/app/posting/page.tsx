@@ -7,20 +7,7 @@ const GeomanMap = dynamic(() => import('@/components/GeomanMap'), { ssr: false }
 
 export default function PostingPage() {
   const [mapInstance, setMapInstance] = useState<any>(null);
-  const [lines, setLines] = useState<any[]>([]);
 
-  // Load existing lines from localStorage
-  useEffect(() => {
-    const savedLines = localStorage.getItem('posting-lines');
-    if (savedLines) {
-      setLines(JSON.parse(savedLines));
-    }
-  }, []);
-
-  // Save lines to localStorage whenever lines change
-  useEffect(() => {
-    localStorage.setItem('posting-lines', JSON.stringify(lines));
-  }, [lines]);
 
   // Initialize Geoman when map is ready
   useEffect(() => {
@@ -45,79 +32,57 @@ export default function PostingPage() {
         optionsControls: true,
         customControls: false,
         oneBlock: false,
+        drawMarker: true,
+        drawRectangle: true,
+        drawPolyline: true,
+        drawPolygon: true,
+        drawCircle: true,
+        editMode: true,
+        dragMode: true,
+        cutPolygon: true,
+        removalMode: true,
       });
+
+      // Enable undo/redo functionality
+      mapInstance.pm.Toolbar.setButtonDisabled('undo', false);
+      mapInstance.pm.Toolbar.setButtonDisabled('redo', false);
       
       console.log('Geoman controls added successfully');
 
-      // Load existing lines
-      loadSavedLines();
-
       // Event listeners for drawing
       mapInstance.on('pm:create', (e: any) => {
-        const layer = e.layer;
-        if (layer.pm && layer.pm.getShape() === 'Line') {
-          const coordinates = layer.getLatLngs().map((latlng: any) => [latlng.lat, latlng.lng]);
-          const lineData = {
-            id: Date.now(),
-            coordinates,
-            color: '#ff0000',
-            timestamp: new Date().toISOString()
-          };
-          setLines(prev => [...prev, lineData]);
-        }
+        console.log('Shape created:', e.layer);
+        // TODO: Save to database
       });
 
       mapInstance.on('pm:remove', (e: any) => {
-        // Handle line deletion if needed
-        loadSavedLines(); // Reload from state
+        console.log('Shape removed:', e.layer);
+        // TODO: Remove from database
+      });
+
+      // Event listeners for edit operations
+      mapInstance.on('pm:cut', (e: any) => {
+        console.log('Shape cut:', e);
+      });
+
+      mapInstance.on('pm:undo', (e: any) => {
+        console.log('Undo action:', e);
+      });
+
+      mapInstance.on('pm:redo', (e: any) => {
+        console.log('Redo action:', e);
+      });
+
+      // Enable undo/redo history tracking
+      mapInstance.pm.setPathOptions({
+        snappable: true,
+        snapDistance: 20,
       });
     };
 
     initializePostingMap();
   }, [mapInstance]);
 
-  // Load saved lines into the map
-  const loadSavedLines = async () => {
-    if (!mapInstance) return;
-    
-    const L = (await import('leaflet')).default;
-    
-    // Clear existing custom lines (but keep geoman layers)
-    mapInstance.eachLayer((layer: any) => {
-      if (layer instanceof L.Polyline && !layer.pm) {
-        mapInstance.removeLayer(layer);
-      }
-    });
-
-    // Add saved lines
-    lines.forEach(lineData => {
-      const polyline = L.polyline(lineData.coordinates, {
-        color: lineData.color || '#ff0000',
-        weight: 3,
-        opacity: 0.8
-      }).addTo(mapInstance);
-    });
-  };
-
-  // Load lines when lines state changes
-  useEffect(() => {
-    loadSavedLines();
-  }, [lines, mapInstance]);
-
-
-  const clearAllLines = () => {
-    setLines([]);
-    localStorage.removeItem('posting-lines');
-    
-    // Also clear any geoman layers
-    if (mapInstance) {
-      mapInstance.eachLayer((layer: any) => {
-        if (layer.pm) {
-          mapInstance.removeLayer(layer);
-        }
-      });
-    }
-  };
 
   return (
     <>
@@ -133,34 +98,6 @@ export default function PostingPage() {
           height: 100vh;
           position: relative;
         }
-        .clear-controls {
-          position: absolute;
-          top: 10px;
-          right: 10px;
-          z-index: 1000;
-          background: white;
-          padding: 10px;
-          border-radius: 5px;
-          box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-        }
-        .clear-button {
-          padding: 8px 16px;
-          border: 1px solid #ddd;
-          border-radius: 3px;
-          cursor: pointer;
-          font-size: 14px;
-          background-color: #f8f9fa;
-          color: #333;
-          transition: background-color 0.2s;
-        }
-        .clear-button:hover {
-          background-color: #e9ecef;
-        }
-        .clear-button:disabled {
-          opacity: 0.5;
-          cursor: not-allowed;
-        }
-        
         /* Ensure Geoman toolbar is visible */
         .leaflet-pm-toolbar {
           z-index: 1000 !important;
@@ -171,16 +108,6 @@ export default function PostingPage() {
           border: 1px solid #ccc !important;
         }
       `}</style>
-      
-      <div className="clear-controls">
-        <button 
-          className="clear-button"
-          onClick={clearAllLines}
-          disabled={lines.length === 0}
-        >
-          Clear All ({lines.length})
-        </button>
-      </div>
       
       <GeomanMap onMapReady={setMapInstance} />
     </>
