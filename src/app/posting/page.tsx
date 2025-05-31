@@ -313,13 +313,22 @@ export default function PostingPage() {
   function attachTextEvents(layer: any) {
     if (!layer || !layer.pm) return;
 
-    // Avoid multiple bindings
+    // Remove previous listeners (if any) to avoid duplication
+    layer.off('pm:textchange');
     layer.off('pm:textblur');
 
+    // Mark layer as dirty whenever content actually changes
+    layer.on('pm:textchange', () => {
+      (layer as any)._textDirty = true;
+    });
+
     layer.on('pm:textblur', () => {
-      console.log('Text layer blur -> saving');
-      if (autoSave) {
-        setTimeout(() => saveCurrentMapState(), 100);
+      if ((layer as any)._textDirty) {
+        console.log('Text layer changed -> saving');
+        (layer as any)._textDirty = false;
+        if (autoSave) {
+          setTimeout(() => saveCurrentMapState(), 100);
+        }
       }
     });
   }
