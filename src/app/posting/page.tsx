@@ -51,10 +51,6 @@ export default function PostingPage() {
         removalMode: true,
       });
 
-      // Enable undo/redo functionality
-      mapInstance.pm.Toolbar.setButtonDisabled('undo', false);
-      mapInstance.pm.Toolbar.setButtonDisabled('redo', false);
-      
       console.log('Geoman controls added successfully');
 
       // Event listeners for drawing - just update count
