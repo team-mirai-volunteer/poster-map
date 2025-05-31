@@ -6,6 +6,7 @@ import {
   saveShape as saveMapShape,
   deleteShape as deleteMapShape,
   loadShapes as loadMapShapes,
+  updateShape as updateMapShape,
   MapShape as MapShapeData,
 } from '@/lib/supabase';
 
@@ -54,37 +55,27 @@ export default function PostingPage() {
       console.log('Geoman controls added successfully');
 
       // Event listeners for drawing - just update count
-      mapInstance.on('pm:create', (e: any) => {
+      mapInstance.on('pm:create', async (e: any) => {
         console.log('Shape created:', e.layer);
-        // If it's a text layer, hook events to keep content in sync
-        if (e.shape === 'Text' && e.layer) {
+        if (e.layer) {
+          await saveOrUpdateLayer(e.layer);
           attachTextEvents(e.layer);
+          updateShapeCount();
         }
-        setTimeout(() => {
-          updateShapeCount();
-          if (autoSave) {
-            saveCurrentMapState();
-          }
-        }, 100);
       });
 
-      mapInstance.on('pm:remove', (e: any) => {
+      mapInstance.on('pm:remove', async (e: any) => {
         console.log('Shape removed:', e.layer);
-        setTimeout(() => {
-          updateShapeCount();
-          if (autoSave) {
-            saveCurrentMapState();
-          }
-        }, 100);
+        const layer = e.layer;
+        if (layer && (layer as any)._shapeId) {
+          await deleteMapShape((layer as any)._shapeId);
+        }
+        updateShapeCount();
       });
 
-      mapInstance.on('pm:update', (e: any) => {
+      mapInstance.on('pm:update', async (e: any) => {
         console.log('Shape updated:', e.layer);
-        setTimeout(() => {
-          if (autoSave) {
-            saveCurrentMapState();
-          }
-        }, 100);
+        await saveOrUpdateLayer(e.layer);
       });
 
       // Event listeners for edit operations
@@ -127,24 +118,25 @@ export default function PostingPage() {
                 textMarker: true,
                 text,
               });
+              (layer as any)._shapeId = shape.id; // preserve id
+              attachTextEvents(layer);
             } else if (shape.coordinates.type === 'Point' && shape.properties?.originalType === 'Circle') {
               // Restore circles from points
               const [lng, lat] = shape.coordinates.coordinates;
               const radius = shape.properties.radius || 100;
               layer = L.circle([lat, lng], { radius });
+              (layer as any)._shapeId = shape.id; // preserve id
+              attachTextEvents(layer);
             } else {
               // Regular GeoJSON layer
               layer = L.geoJSON(shape.coordinates);
+              (layer as any)._shapeId = shape.id; // preserve id
+              attachTextEvents(layer);
             }
             
             layer.addTo(mapInstance);
             
             console.log('Loaded shape:', shape.type);
-
-            // Attach text edit events so updates trigger autosave
-            if (shape.type === 'text' || shape.properties?.originalType === 'Text') {
-              attachTextEvents(layer);
-            }
           } catch (layerError) {
             console.error('Failed to create layer for shape:', shape, layerError);
           }
@@ -278,7 +270,11 @@ export default function PostingPage() {
 
   // Manual save function
   const saveAllShapes = async () => {
-    await saveCurrentMapState();
+    const layers = getAllDrawnLayers();
+    for (const l of layers) {
+      await saveOrUpdateLayer(l);
+    }
+    console.log('Manual save complete');
   };
 
   const clearAllShapes = () => {
@@ -326,12 +322,76 @@ export default function PostingPage() {
       if ((layer as any)._textDirty) {
         console.log('Text layer changed -> saving');
         (layer as any)._textDirty = false;
-        if (autoSave) {
-          setTimeout(() => saveCurrentMapState(), 100);
-        }
+        if (autoSave) saveOrUpdateLayer(layer);
       }
     });
   }
+
+  // Extract MapShapeData from a given leaflet layer
+  const extractShapeData = (layer: any): MapShapeData => {
+    const L = (window as any).L;
+    if (!L) throw new Error('Leaflet not loaded');
+
+    const shapeName = layer.pm?.getShape ? layer.pm.getShape() : undefined;
+
+    if (shapeName === 'Text') {
+      const center = layer.getLatLng();
+      const textContent = layer.pm?.getText ? layer.pm.getText() : '';
+      return {
+        type: 'text',
+        coordinates: {
+          type: 'Point',
+          coordinates: [center.lng, center.lat],
+        },
+        properties: { text: textContent, originalType: 'Text' },
+      };
+    }
+
+    if (layer instanceof L.Circle) {
+      const center = layer.getLatLng();
+      const radius = layer.getRadius();
+      return {
+        type: 'circle',
+        coordinates: { type: 'Point', coordinates: [center.lng, center.lat] },
+        properties: { radius, originalType: 'Circle' },
+      };
+    }
+
+    const geoJSON = layer.toGeoJSON();
+    return {
+      type: geoJSON.geometry.type.toLowerCase() as MapShapeData['type'],
+      coordinates: geoJSON.geometry,
+      properties: { ...geoJSON.properties, originalType: geoJSON.geometry.type },
+    };
+  };
+
+  // Save or update layer depending on presence of _shapeId
+  const saveOrUpdateLayer = async (layer: any) => {
+    const shapeData = extractShapeData(layer);
+    if ((layer as any)._shapeId) {
+      await updateMapShape((layer as any)._shapeId, {
+        coordinates: shapeData.coordinates,
+        properties: shapeData.properties,
+      });
+    } else {
+      const saved = await saveMapShape(shapeData);
+      (layer as any)._shapeId = saved.id;
+    }
+  };
+
+  // Helper when building shape in bulk saveCurrentMapState (legacy path)
+  const saveOrUpdateShapeRecord = async (layer: any, shape: MapShapeData) => {
+    if ((layer as any)._shapeId) {
+      return await updateMapShape((layer as any)._shapeId, {
+        coordinates: shape.coordinates,
+        properties: shape.properties,
+      });
+    } else {
+      const saved = await saveMapShape(shape);
+      (layer as any)._shapeId = saved.id;
+      return saved;
+    }
+  };
 
   return (
     <>

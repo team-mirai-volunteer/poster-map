@@ -66,3 +66,18 @@ export async function loadShapes() {
   
   return data
 }
+
+export async function updateShape(id: string, data: Partial<MapShape>) {
+  const { data: rows, error } = await supabase
+    .from('map_shapes')
+    .update(data)
+    .eq('id', id)
+    .select()
+
+  if (error) {
+    console.error('Error updating shape:', error)
+    throw error
+  }
+
+  return rows && rows[0]
+}
