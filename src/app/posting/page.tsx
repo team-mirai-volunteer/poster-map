@@ -56,6 +56,10 @@ export default function PostingPage() {
       // Event listeners for drawing - just update count
       mapInstance.on('pm:create', (e: any) => {
         console.log('Shape created:', e.layer);
+        // If it's a text layer, hook events to keep content in sync
+        if (e.shape === 'Text' && e.layer) {
+          attachTextEvents(e.layer);
+        }
         setTimeout(() => {
           updateShapeCount();
           if (autoSave) {
@@ -119,11 +123,10 @@ export default function PostingPage() {
             if (shape.type === 'text' || shape.properties?.originalType === 'Text') {
               const [lng, lat] = shape.coordinates.coordinates;
               const text = shape.properties?.text || '';
-              const icon = L.divIcon({
-                className: 'leaflet-pm-text-marker',
-                html: text,
+              layer = L.marker([lat, lng], {
+                textMarker: true,
+                text,
               });
-              layer = L.marker([lat, lng], { icon });
             } else if (shape.coordinates.type === 'Point' && shape.properties?.originalType === 'Circle') {
               // Restore circles from points
               const [lng, lat] = shape.coordinates.coordinates;
@@ -137,6 +140,11 @@ export default function PostingPage() {
             layer.addTo(mapInstance);
             
             console.log('Loaded shape:', shape.type);
+
+            // Attach text edit events so updates trigger autosave
+            if (shape.type === 'text' || shape.properties?.originalType === 'Text') {
+              attachTextEvents(layer);
+            }
           } catch (layerError) {
             console.error('Failed to create layer for shape:', shape, layerError);
           }
@@ -213,10 +221,9 @@ export default function PostingPage() {
         const shapeName = layer.pm?.getShape ? layer.pm.getShape() : undefined;
 
         if (shapeName === 'Text') {
-          // Custom handling for text layers
+          // Official Geoman text layer
           const center = layer.getLatLng();
-          const element = (layer as any).getElement ? (layer as any).getElement() : null;
-          const textContent = element ? (element.innerText || element.textContent || '') : '';
+          const textContent = layer.pm?.getText ? layer.pm.getText() : '';
 
           shape = {
             type: 'text',
@@ -294,17 +301,28 @@ export default function PostingPage() {
   // Simple logic: if auto-save is off, all shapes are "unsaved" until manually saved
   const unsavedCount = autoSave ? 0 : shapeCount;
 
-  // Add minimal styles for text markers
-  // This can be moved elsewhere but inline for now
+  // Minimal custom style example (optional)
   const textMarkerStyles = `
-    .leaflet-pm-text-marker {
-      font-size: 14px;
-      color: #000;
-      white-space: nowrap;
-      user-select: none;
-      pointer-events: none;
+    .pm-text {
+      font-size:14px;
+      color:#000;
     }
   `;
+
+  // Helper to bind text events on individual text layers
+  function attachTextEvents(layer: any) {
+    if (!layer || !layer.pm) return;
+
+    // Avoid multiple bindings
+    layer.off('pm:textblur');
+
+    layer.on('pm:textblur', () => {
+      console.log('Text layer blur -> saving');
+      if (autoSave) {
+        setTimeout(() => saveCurrentMapState(), 100);
+      }
+    });
+  }
 
   return (
     <>
