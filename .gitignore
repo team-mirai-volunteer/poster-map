@@ -1,5 +1,5 @@
 .DS_Store
-.env
+.env*
 
 # Local Netlify folder
 .netlify
@@ -11,3 +11,4 @@ dist
 .next
 
 /generated/prisma
+.vercel
