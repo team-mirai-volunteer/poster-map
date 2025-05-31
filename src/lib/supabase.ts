@@ -1,22 +1,9 @@
-import { createClient, SupabaseClient } from '@supabase/supabase-js'
+import { createClient } from '@supabase/supabase-js'
 
-let supabase: SupabaseClient | null = null;
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 
-function getSupabase(): SupabaseClient {
-  if (supabase) return supabase;
-
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-
-  if (!supabaseUrl || !supabaseAnonKey) {
-    // During static build (or if env vars missing) we defer initialisation.
-    // Functions that rely on Supabase will throw a descriptive error on the client instead of at build time.
-    throw new Error('Supabase environment variables are not defined');
-  }
-
-  supabase = createClient(supabaseUrl, supabaseAnonKey);
-  return supabase;
-}
+export const supabase = createClient(supabaseUrl, supabaseAnonKey)
 
 export interface MapShape {
   id?: string
@@ -41,8 +28,7 @@ export async function saveShape(shape: MapShape) {
     updated_at: shape.updated_at ?? nowISO,
   } as any;
 
-  const client = getSupabase();
-  const { data, error } = await client
+  const { data, error } = await supabase
     .from('map_shapes')
     .insert([shapeWithMeta])
     .select()
@@ -56,8 +42,7 @@ export async function saveShape(shape: MapShape) {
 }
 
 export async function deleteShape(id: string) {
-  const client = getSupabase();
-  const { error } = await client
+  const { error } = await supabase
     .from('map_shapes')
     .delete()
     .eq('id', id)
@@ -69,8 +54,7 @@ export async function deleteShape(id: string) {
 }
 
 export async function loadShapes() {
-  const client = getSupabase();
-  const { data, error } = await client
+  const { data, error } = await supabase
     .from('map_shapes')
     .select('*')
     .order('created_at', { ascending: false })
