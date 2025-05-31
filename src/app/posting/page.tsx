@@ -53,58 +53,30 @@ export default function PostingPage() {
       
       console.log('Geoman controls added successfully');
 
-      // Event listeners for drawing
-      mapInstance.on('pm:create', async (e: any) => {
+      // Event listeners for drawing - just update count
+      mapInstance.on('pm:create', (e: any) => {
         console.log('Shape created:', e.layer);
+        updateShapeCount();
         
-        const layer = e.layer;
-        const geoJSON = layer.toGeoJSON();
-        
-        const shape: MapShapeData = {
-          type: getShapeType(layer),
-          coordinates: geoJSON.geometry,
-          properties: geoJSON.properties || {}
-        };
-
-        // Add to local state immediately
-        setShapes(prev => [...prev, { layer, data: shape, saved: false }]);
-
         if (autoSave) {
-          try {
-            const savedShape = await saveMapShape(shape);
-            setShapeMap(prev => new Map(prev.set(layer, savedShape.id)));
-            setShapes(prev => prev.map(s => s.layer === layer ? { ...s, saved: true, id: savedShape.id } : s));
-            console.log('Shape auto-saved to database:', savedShape);
-          } catch (error) {
-            console.error('Failed to auto-save shape:', error);
-          }
+          setTimeout(() => saveCurrentMapState(), 100); // Small delay to ensure layer is properly added
         }
       });
 
-      mapInstance.on('pm:remove', async (e: any) => {
+      mapInstance.on('pm:remove', (e: any) => {
         console.log('Shape removed:', e.layer);
-        
-        const layer = e.layer;
-        
-        // Remove from local state
-        setShapes(prev => prev.filter(s => s.layer !== layer));
+        updateShapeCount();
         
         if (autoSave) {
-          try {
-            const shapeId = shapeMap.get(layer);
-            
-            if (shapeId) {
-              await deleteMapShape(shapeId);
-              setShapeMap(prev => {
-                const newMap = new Map(prev);
-                newMap.delete(layer);
-                return newMap;
-              });
-              console.log('Shape deleted from database');
-            }
-          } catch (error) {
-            console.error('Failed to delete shape:', error);
-          }
+          setTimeout(() => saveCurrentMapState(), 100);
+        }
+      });
+
+      mapInstance.on('pm:update', (e: any) => {
+        console.log('Shape updated:', e.layer);
+        
+        if (autoSave) {
+          setTimeout(() => saveCurrentMapState(), 100);
         }
       });
 
@@ -133,57 +105,161 @@ export default function PostingPage() {
 
     const loadExistingShapes = async () => {
       try {
-        const shapes = await loadMapShapes();
+        const savedShapes = await loadMapShapes();
         const L = (await import('leaflet')).default;
         
-        shapes.forEach((shape: any) => {
-          const layer = L.geoJSON(shape.coordinates).addTo(mapInstance);
-          setShapeMap(prev => new Map(prev.set(layer.getLayers()[0], shape.id)));
+        savedShapes.forEach((shape: any) => {
+          try {
+            let layer;
+            
+            // Handle different geometry types properly
+            if (shape.coordinates.type === 'Point' && shape.properties?.originalType === 'Circle') {
+              // Restore circles from points
+              const [lng, lat] = shape.coordinates.coordinates;
+              const radius = shape.properties.radius || 100;
+              layer = L.circle([lat, lng], { radius });
+            } else {
+              // Regular GeoJSON layer
+              layer = L.geoJSON(shape.coordinates);
+            }
+            
+            layer.addTo(mapInstance);
+            
+            console.log('Loaded shape:', shape.type);
+          } catch (layerError) {
+            console.error('Failed to create layer for shape:', shape, layerError);
+          }
         });
         
-        console.log('Loaded existing shapes:', shapes.length);
+        console.log('Loaded existing shapes:', savedShapes.length);
+        // Set initial state as saved since we just loaded from database
+        const drawnLayers = getAllDrawnLayers();
+        setShapes(drawnLayers.map(layer => ({ layer, saved: true })));
       } catch (error) {
         console.error('Failed to load existing shapes:', error);
       }
     };
 
-    const getShapeType = (layer: any): MapShapeData['type'] => {
-      if (layer instanceof (window as any).L.Marker) return 'marker';
-      if (layer instanceof (window as any).L.Rectangle) return 'rectangle';
-      if (layer instanceof (window as any).L.Polyline && !(layer instanceof (window as any).L.Polygon)) return 'polyline';
-      if (layer instanceof (window as any).L.Polygon) return 'polygon';
-      if (layer instanceof (window as any).L.Circle) return 'circle';
-      return 'polygon';
-    };
 
     initializePostingMap();
   }, [mapInstance]);
 
+  // Collect all drawn layers from the map
+  const getAllDrawnLayers = () => {
+    if (!mapInstance) return [];
+    
+    const L = (window as any).L;
+    const allLayers: any[] = [];
+    
+    mapInstance.eachLayer((layer: any) => {
+      if (layer instanceof L.Path || layer instanceof L.Marker) {
+        // Skip base tiles and other non-drawn layers
+        if (layer.pm && !layer._url) {
+          allLayers.push(layer);
+        }
+      }
+    });
+    
+    return allLayers;
+  };
+
+  // Update shape count
+  const updateShapeCount = () => {
+    const drawnLayers = getAllDrawnLayers();
+    setShapes(drawnLayers.map(layer => ({ layer, saved: false })));
+  };
+
+  // Save current map state to database
+  const saveCurrentMapState = async () => {
+    if (!mapInstance) return;
+    
+    try {
+      // Clear existing shapes from database first
+      const existingShapes = await loadMapShapes();
+      for (const shape of existingShapes) {
+        await deleteMapShape(shape.id);
+      }
+      
+      // Get all drawn layers and save them individually
+      const L = (window as any).L;
+      const drawnLayers: any[] = [];
+      
+      mapInstance.eachLayer((layer: any) => {
+        if ((layer instanceof L.Path || layer instanceof L.Marker) && layer.pm && !layer._url) {
+          drawnLayers.push(layer);
+        }
+      });
+      
+      if (drawnLayers.length === 0) {
+        console.log('No shapes to save');
+        setShapes([]);
+        return;
+      }
+      
+      // Save each layer individually to handle circles properly
+      const savedShapes = [];
+      for (const layer of drawnLayers) {
+        let shape: MapShapeData;
+        
+        if (layer instanceof L.Circle) {
+          // Handle circles specially since they become points in GeoJSON
+          const center = layer.getLatLng();
+          const radius = layer.getRadius();
+          
+          shape = {
+            type: 'circle',
+            coordinates: {
+              type: 'Point',
+              coordinates: [center.lng, center.lat]
+            },
+            properties: {
+              radius: radius,
+              originalType: 'Circle'
+            }
+          };
+        } else {
+          // Regular GeoJSON conversion
+          const geoJSON = layer.toGeoJSON();
+          shape = {
+            type: geoJSON.geometry.type.toLowerCase() as MapShapeData['type'],
+            coordinates: geoJSON.geometry,
+            properties: {
+              ...geoJSON.properties,
+              originalType: geoJSON.geometry.type
+            }
+          };
+        }
+        
+        const savedShape = await saveMapShape(shape);
+        savedShapes.push(savedShape);
+      }
+      
+      console.log(`Saved ${savedShapes.length} shapes to database`);
+      setShapes(getAllDrawnLayers().map(layer => ({ layer, saved: true })));
+      
+    } catch (error) {
+      console.error('Failed to save map state:', error);
+    }
+  };
+
   // Manual save function
   const saveAllShapes = async () => {
-    const unsavedShapes = shapes.filter(s => !s.saved);
-    
-    for (const shape of unsavedShapes) {
-      try {
-        const savedShape = await saveMapShape(shape.data);
-        setShapeMap(prev => new Map(prev.set(shape.layer, savedShape.id)));
-        setShapes(prev => prev.map(s => s.layer === shape.layer ? { ...s, saved: true, id: savedShape.id } : s));
-        console.log('Shape manually saved:', savedShape);
-      } catch (error) {
-        console.error('Failed to manually save shape:', error);
-      }
-    }
+    await saveCurrentMapState();
   };
 
   const clearAllShapes = () => {
     if (mapInstance) {
+      const L = (window as any).L;
       mapInstance.eachLayer((layer: any) => {
-        if (layer.pm) {
+        if ((layer instanceof L.Path || layer instanceof L.Marker) && layer.pm && !layer._url) {
           mapInstance.removeLayer(layer);
         }
       });
       setShapes([]);
-      setShapeMap(new Map());
+      
+      if (autoSave) {
+        saveCurrentMapState(); // Clear database too
+      }
     }
   };
 

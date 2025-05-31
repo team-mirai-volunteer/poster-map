@@ -10,7 +10,7 @@ if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma
 
 export interface MapShapeData {
   id?: string
-  type: 'marker' | 'rectangle' | 'polyline' | 'polygon' | 'circle'
+  type: 'marker' | 'rectangle' | 'polyline' | 'polygon' | 'circle' | 'point' | 'linestring'
   coordinates: any
   properties?: any
 }
