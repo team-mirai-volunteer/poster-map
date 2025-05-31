@@ -10,10 +10,11 @@
     "export": "next build && next export"
   },
   "dependencies": {
+    "@geoman-io/leaflet-geoman-free": "^2.18.3",
+    "leaflet": "^1.9.4",
     "next": "15.3.3",
     "react": "^19",
-    "react-dom": "^19",
-    "leaflet": "^1.9.4"
+    "react-dom": "^19"
   },
   "devDependencies": {
     "@types/leaflet": "^1.9.12",
