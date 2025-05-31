@@ -116,7 +116,15 @@ export default function PostingPage() {
             let layer;
             
             // Handle different geometry types properly
-            if (shape.coordinates.type === 'Point' && shape.properties?.originalType === 'Circle') {
+            if (shape.type === 'text' || shape.properties?.originalType === 'Text') {
+              const [lng, lat] = shape.coordinates.coordinates;
+              const text = shape.properties?.text || '';
+              const icon = L.divIcon({
+                className: 'leaflet-pm-text-marker',
+                html: text,
+              });
+              layer = L.marker([lat, lng], { icon });
+            } else if (shape.coordinates.type === 'Point' && shape.properties?.originalType === 'Circle') {
               // Restore circles from points
               const [lng, lat] = shape.coordinates.coordinates;
               const radius = shape.properties.radius || 100;
@@ -202,7 +210,26 @@ export default function PostingPage() {
       for (const layer of drawnLayers) {
         let shape: MapShapeData;
         
-        if (layer instanceof L.Circle) {
+        const shapeName = layer.pm?.getShape ? layer.pm.getShape() : undefined;
+
+        if (shapeName === 'Text') {
+          // Custom handling for text layers
+          const center = layer.getLatLng();
+          const element = (layer as any).getElement ? (layer as any).getElement() : null;
+          const textContent = element ? (element.innerText || element.textContent || '') : '';
+
+          shape = {
+            type: 'text',
+            coordinates: {
+              type: 'Point',
+              coordinates: [center.lng, center.lat],
+            },
+            properties: {
+              text: textContent,
+              originalType: 'Text',
+            },
+          };
+        } else if (layer instanceof L.Circle) {
           // Handle circles specially since they become points in GeoJSON
           const center = layer.getLatLng();
           const radius = layer.getRadius();
@@ -266,6 +293,18 @@ export default function PostingPage() {
 
   // Simple logic: if auto-save is off, all shapes are "unsaved" until manually saved
   const unsavedCount = autoSave ? 0 : shapeCount;
+
+  // Add minimal styles for text markers
+  // This can be moved elsewhere but inline for now
+  const textMarkerStyles = `
+    .leaflet-pm-text-marker {
+      font-size: 14px;
+      color: #000;
+      white-space: nowrap;
+      user-select: none;
+      pointer-events: none;
+    }
+  `;
 
   return (
     <>
@@ -350,6 +389,8 @@ export default function PostingPage() {
           background-color: white !important;
           border: 1px solid #ccc !important;
         }
+
+        ${textMarkerStyles}
       `}</style>
       
       <GeomanMap onMapReady={setMapInstance} />

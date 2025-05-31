@@ -7,7 +7,7 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey)
 
 export interface MapShape {
   id?: string
-  type: 'marker' | 'rectangle' | 'polyline' | 'polygon' | 'circle' | 'point' | 'linestring'
+  type: 'marker' | 'rectangle' | 'polyline' | 'polygon' | 'circle' | 'point' | 'linestring' | 'text'
   coordinates: any
   properties?: any
   created_at?: string
