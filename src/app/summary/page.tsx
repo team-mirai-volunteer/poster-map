@@ -135,7 +135,64 @@ export default function SummaryPage() {
   return (
     <>
       <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-      <link rel="stylesheet" href="/summary/style.css" />
+      <style jsx global>{`
+        body {
+          margin: 0;
+          padding: 0;
+        }
+        #map {
+          width: 100%;
+          height: 100vh;
+        }
+        .info {
+          color: #333;
+          background: white;
+          padding: 10px;
+          border: 1px solid #5d5d5d;
+          border-radius: 4px;
+          width: 72px;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+        }
+        .info p {
+          padding: 0;
+          margin: 0 0 2px 0;
+          font-weight: bold;
+        }
+        .legend {
+          line-height: 18px;
+        }
+        .legend-gradient {
+          background: linear-gradient(to top, #feedde 0%, #fdbe85 25%, #fd8d3c 50%, #e6550d 75%, #a63603 100%);
+          width: 20px;
+          height: 100px;
+        }
+        .legend-labels {
+          display: flex;
+          flex-direction: column;
+          justify-content: space-between;
+          height: 100px;
+          margin-left: 5px;
+        }
+        .legend-inner-container {
+          display: flex;
+          align-items: center;
+        }
+        .progressValue {
+          font-size: 25px;
+          line-height: 1;
+          margin: 0;
+        }
+        @media (max-width: 767px) {
+          .info {
+            padding: 7px;
+          }
+          .progressValue {
+            font-size: 25px;
+          }
+        }
+      `}</style>
       <Map onMapReady={setMapInstance} />
     </>
   );

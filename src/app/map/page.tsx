@@ -172,7 +172,48 @@ function MapPageContent() {
   return (
     <>
       <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-      <link rel="stylesheet" href="/map/style.css" />
+      <style jsx global>{`
+        body {
+          margin: 0;
+          padding: 0;
+        }
+        #map {
+          width: 100%;
+          height: 100vh;
+        }
+        .icon-gray {
+          filter: grayscale(100%);
+        }
+        .info {
+          color: #333;
+          background: white;
+          padding: 10px;
+          border: 1px solid #5d5d5d;
+          border-radius: 4px;
+          width: 72px;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+        }
+        .info p {
+          padding: 0;
+          margin: 0 0 2px 0;
+          font-weight: bold;
+        }
+        .progressValue {
+          font-size: 25px;
+          line-height: 1;
+          margin: 0;
+        }
+        @media (max-width: 767px) {
+          .info {
+            padding: 7px;
+          }
+          .progressValue {
+            font-size: 25px;
+          }
+        }
+      `}</style>
       <Map onMapReady={setMapInstance} />
     </>
   );

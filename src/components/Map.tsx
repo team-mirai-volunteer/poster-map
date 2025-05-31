@@ -9,7 +9,7 @@ interface MapProps {
   className?: string;
 }
 
-export default function Map({ onMapReady, className = "h-screen w-full" }: MapProps) {
+export default function Map({ onMapReady, className }: MapProps) {
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<L.Map | null>(null);
 
@@ -36,6 +36,11 @@ export default function Map({ onMapReady, className = "h-screen w-full" }: MapPr
       onMapReady(map);
     }
 
+    // Fix map sizing issues by forcing a resize after initial render
+    setTimeout(() => {
+      map.invalidateSize();
+    }, 100);
+
     return () => {
       if (mapInstanceRef.current) {
         mapInstanceRef.current.remove();
@@ -44,5 +49,17 @@ export default function Map({ onMapReady, className = "h-screen w-full" }: MapPr
     };
   }, [onMapReady]);
 
-  return <div ref={mapRef} className={className} id="map" />;
+  return (
+    <div 
+      ref={mapRef} 
+      id="map" 
+      className={className}
+      style={{
+        width: '100%',
+        height: '100vh',
+        margin: 0,
+        padding: 0
+      }}
+    />
+  );
 }

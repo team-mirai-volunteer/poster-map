@@ -115,7 +115,19 @@ export default function VotePage() {
   return (
     <>
       <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-      <link rel="stylesheet" href="/vote/style.css" />
+      <style jsx global>{`
+        body {
+          margin: 0;
+          padding: 0;
+        }
+        #map {
+          width: 100%;
+          height: 100vh;
+        }
+        .icon-gray {
+          filter: grayscale(100%);
+        }
+      `}</style>
       <Map onMapReady={setMapInstance} />
     </>
   );
