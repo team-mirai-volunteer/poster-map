@@ -5,3 +5,7 @@
 .netlify
 
 public/data/log/*
+
+node_modules
+dist
+.next
