@@ -2,14 +2,18 @@
 
 import { useEffect, useState } from 'react';
 import dynamic from 'next/dynamic';
-import { saveMapShape, deleteMapShape, loadMapShapes, MapShapeData } from '@/lib/prisma';
+import {
+  saveShape as saveMapShape,
+  deleteShape as deleteMapShape,
+  loadShapes as loadMapShapes,
+  MapShape as MapShapeData,
+} from '@/lib/supabase';
 
 const GeomanMap = dynamic(() => import('@/components/GeomanMap'), { ssr: false });
 
 export default function PostingPage() {
   const [mapInstance, setMapInstance] = useState<any>(null);
-  const [shapeMap, setShapeMap] = useState<Map<any, string>>(new Map());
-  const [shapes, setShapes] = useState<any[]>([]);
+  const [shapeCount, setShapeCount] = useState(0);
   const [autoSave, setAutoSave] = useState(true);
 
 
@@ -56,28 +60,31 @@ export default function PostingPage() {
       // Event listeners for drawing - just update count
       mapInstance.on('pm:create', (e: any) => {
         console.log('Shape created:', e.layer);
-        updateShapeCount();
-        
-        if (autoSave) {
-          setTimeout(() => saveCurrentMapState(), 100); // Small delay to ensure layer is properly added
-        }
+        setTimeout(() => {
+          updateShapeCount();
+          if (autoSave) {
+            saveCurrentMapState();
+          }
+        }, 100);
       });
 
       mapInstance.on('pm:remove', (e: any) => {
         console.log('Shape removed:', e.layer);
-        updateShapeCount();
-        
-        if (autoSave) {
-          setTimeout(() => saveCurrentMapState(), 100);
-        }
+        setTimeout(() => {
+          updateShapeCount();
+          if (autoSave) {
+            saveCurrentMapState();
+          }
+        }, 100);
       });
 
       mapInstance.on('pm:update', (e: any) => {
         console.log('Shape updated:', e.layer);
-        
-        if (autoSave) {
-          setTimeout(() => saveCurrentMapState(), 100);
-        }
+        setTimeout(() => {
+          if (autoSave) {
+            saveCurrentMapState();
+          }
+        }, 100);
       });
 
       // Event listeners for edit operations
@@ -132,9 +139,7 @@ export default function PostingPage() {
         });
         
         console.log('Loaded existing shapes:', savedShapes.length);
-        // Set initial state as saved since we just loaded from database
-        const drawnLayers = getAllDrawnLayers();
-        setShapes(drawnLayers.map(layer => ({ layer, saved: true })));
+        updateShapeCount();
       } catch (error) {
         console.error('Failed to load existing shapes:', error);
       }
@@ -166,7 +171,8 @@ export default function PostingPage() {
   // Update shape count
   const updateShapeCount = () => {
     const drawnLayers = getAllDrawnLayers();
-    setShapes(drawnLayers.map(layer => ({ layer, saved: false })));
+    setShapeCount(drawnLayers.length);
+    console.log('Shape count updated:', drawnLayers.length);
   };
 
   // Save current map state to database
@@ -191,8 +197,7 @@ export default function PostingPage() {
       });
       
       if (drawnLayers.length === 0) {
-        console.log('No shapes to save');
-        setShapes([]);
+        console.log('No shapes to save - clearing database');
         return;
       }
       
@@ -235,7 +240,6 @@ export default function PostingPage() {
       }
       
       console.log(`Saved ${savedShapes.length} shapes to database`);
-      setShapes(getAllDrawnLayers().map(layer => ({ layer, saved: true })));
       
     } catch (error) {
       console.error('Failed to save map state:', error);
@@ -255,7 +259,7 @@ export default function PostingPage() {
           mapInstance.removeLayer(layer);
         }
       });
-      setShapes([]);
+      setShapeCount(0);
       
       if (autoSave) {
         saveCurrentMapState(); // Clear database too
@@ -264,7 +268,8 @@ export default function PostingPage() {
   };
 
 
-  const unsavedCount = shapes.filter(s => !s.saved).length;
+  // Simple logic: if auto-save is off, all shapes are "unsaved" until manually saved
+  const unsavedCount = autoSave ? 0 : shapeCount;
 
   return (
     <>
@@ -286,7 +291,7 @@ export default function PostingPage() {
         gap: '8px'
       }}>
         <div style={{ fontSize: '12px', color: '#666' }}>
-          Shapes: {shapes.length} | Unsaved: {unsavedCount}
+          Shapes: {shapeCount} {!autoSave && shapeCount > 0 ? '(need manual save)' : ''}
         </div>
         
         <label style={{ fontSize: '12px', display: 'flex', alignItems: 'center', gap: '5px' }}>
@@ -300,18 +305,18 @@ export default function PostingPage() {
         
         <button
           onClick={saveAllShapes}
-          disabled={unsavedCount === 0}
+          disabled={autoSave || shapeCount === 0}
           style={{
             padding: '5px 10px',
             fontSize: '12px',
-            backgroundColor: unsavedCount > 0 ? '#007bff' : '#ccc',
+            backgroundColor: (!autoSave && shapeCount > 0) ? '#007bff' : '#ccc',
             color: 'white',
             border: 'none',
             borderRadius: '3px',
-            cursor: unsavedCount > 0 ? 'pointer' : 'not-allowed'
+            cursor: (!autoSave && shapeCount > 0) ? 'pointer' : 'not-allowed'
           }}
         >
-          Save All ({unsavedCount})
+          Save All Shapes
         </button>
         
         <button
