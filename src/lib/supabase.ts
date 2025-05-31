@@ -15,9 +15,22 @@ export interface MapShape {
 }
 
 export async function saveShape(shape: MapShape) {
+  const nowISO = new Date().toISOString();
+
+  const shapeWithMeta: MapShape & { id: string; created_at: string; updated_at: string } = {
+    ...shape,
+    id:
+      shape.id ??
+      (typeof crypto !== 'undefined' && crypto.randomUUID
+        ? crypto.randomUUID()
+        : Math.random().toString(36).substring(2, 15)),
+    created_at: shape.created_at ?? nowISO,
+    updated_at: shape.updated_at ?? nowISO,
+  } as any;
+
   const { data, error } = await supabase
     .from('map_shapes')
-    .insert([shape])
+    .insert([shapeWithMeta])
     .select()
   
   if (error) {
