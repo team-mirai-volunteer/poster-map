@@ -7,12 +7,18 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "export": "next build && next export"
+    "export": "next build && next export",
+    "db:push": "prisma db push",
+    "db:migrate": "prisma migrate dev",
+    "db:generate": "prisma generate"
   },
   "dependencies": {
     "@geoman-io/leaflet-geoman-free": "^2.18.3",
+    "@prisma/client": "^6.8.2",
+    "@supabase/supabase-js": "^2.49.8",
     "leaflet": "^1.9.4",
     "next": "15.3.3",
+    "prisma": "^6.8.2",
     "react": "^19",
     "react-dom": "^19",
     "react-leaflet": "^5.0.0"

@@ -9,3 +9,5 @@ public/data/log/*
 node_modules
 dist
 .next
+
+/generated/prisma
