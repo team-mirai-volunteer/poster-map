@@ -15,7 +15,7 @@ const GeomanMap = dynamic(() => import('@/components/GeomanMap'), { ssr: false }
 export default function PostingPage() {
   const [mapInstance, setMapInstance] = useState<any>(null);
   const [shapeCount, setShapeCount] = useState(0);
-  const [autoSave, setAutoSave] = useState(true);
+  const autoSave = true;
 
 
   // Initialize Geoman when map is ready
@@ -277,23 +277,6 @@ export default function PostingPage() {
     console.log('Manual save complete');
   };
 
-  const clearAllShapes = () => {
-    if (mapInstance) {
-      const L = (window as any).L;
-      mapInstance.eachLayer((layer: any) => {
-        if ((layer instanceof L.Path || layer instanceof L.Marker) && layer.pm && !layer._url) {
-          mapInstance.removeLayer(layer);
-        }
-      });
-      setShapeCount(0);
-      
-      if (autoSave) {
-        saveCurrentMapState(); // Clear database too
-      }
-    }
-  };
-
-
   // Simple logic: if auto-save is off, all shapes are "unsaved" until manually saved
   const unsavedCount = autoSave ? 0 : shapeCount;
 
@@ -413,48 +396,10 @@ export default function PostingPage() {
         gap: '8px'
       }}>
         <div style={{ fontSize: '12px', color: '#666' }}>
-          Shapes: {shapeCount} {!autoSave && shapeCount > 0 ? '(need manual save)' : ''}
+          Shapes: {shapeCount}
         </div>
         
-        <label style={{ fontSize: '12px', display: 'flex', alignItems: 'center', gap: '5px' }}>
-          <input
-            type="checkbox"
-            checked={autoSave}
-            onChange={(e) => setAutoSave(e.target.checked)}
-          />
-          Auto-save
-        </label>
-        
-        <button
-          onClick={saveAllShapes}
-          disabled={autoSave || shapeCount === 0}
-          style={{
-            padding: '5px 10px',
-            fontSize: '12px',
-            backgroundColor: (!autoSave && shapeCount > 0) ? '#007bff' : '#ccc',
-            color: 'white',
-            border: 'none',
-            borderRadius: '3px',
-            cursor: (!autoSave && shapeCount > 0) ? 'pointer' : 'not-allowed'
-          }}
-        >
-          Save All Shapes
-        </button>
-        
-        <button
-          onClick={clearAllShapes}
-          style={{
-            padding: '5px 10px',
-            fontSize: '12px',
-            backgroundColor: '#dc3545',
-            color: 'white',
-            border: 'none',
-            borderRadius: '3px',
-            cursor: 'pointer'
-          }}
-        >
-          Clear All
-        </button>
+        {/* Auto-save is always on; checkbox removed */}
       </div>
 
       <style jsx global>{`
