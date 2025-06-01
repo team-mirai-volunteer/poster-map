@@ -67,8 +67,9 @@ export default function PostingPage() {
       mapInstance.on('pm:remove', async (e: any) => {
         console.log('Shape removed:', e.layer);
         const layer = e.layer;
-        if (layer && (layer as any)._shapeId) {
-          await deleteMapShape((layer as any)._shapeId);
+        const sid = getShapeId(layer);
+        if (sid) {
+          await deleteMapShape(sid);
         }
         updateShapeCount();
       });
@@ -135,6 +136,13 @@ export default function PostingPage() {
             }
             
             layer.addTo(mapInstance);
+            
+            // store id on all sub layers for robust update/delete
+            propagateShapeId(layer, shape.id);
+
+            if (shape.type === 'text' || shape.properties?.originalType === 'Text') {
+              attachTextEvents(layer);
+            }
             
             console.log('Loaded shape:', shape.type);
           } catch (layerError) {
@@ -351,29 +359,54 @@ export default function PostingPage() {
   // Save or update layer depending on presence of _shapeId
   const saveOrUpdateLayer = async (layer: any) => {
     const shapeData = extractShapeData(layer);
-    if ((layer as any)._shapeId) {
-      await updateMapShape((layer as any)._shapeId, {
+    const sid = getShapeId(layer);
+    if (sid) {
+      await updateMapShape(sid, {
         coordinates: shapeData.coordinates,
         properties: shapeData.properties,
       });
     } else {
       const saved = await saveMapShape(shapeData);
-      (layer as any)._shapeId = saved.id;
+      propagateShapeId(layer, saved.id);
+      return saved;
     }
   };
 
   // Helper when building shape in bulk saveCurrentMapState (legacy path)
   const saveOrUpdateShapeRecord = async (layer: any, shape: MapShapeData) => {
-    if ((layer as any)._shapeId) {
-      return await updateMapShape((layer as any)._shapeId, {
+    const sid = getShapeId(layer);
+    if (sid) {
+      return await updateMapShape(sid, {
         coordinates: shape.coordinates,
         properties: shape.properties,
       });
     } else {
       const saved = await saveMapShape(shape);
-      (layer as any)._shapeId = saved.id;
+      propagateShapeId(layer, saved.id);
       return saved;
     }
+  };
+
+  // Ensure every drawable sub-layer carries the shapeId for event handlers
+  function propagateShapeId(layer: any, id: string) {
+    if (!layer) return;
+    (layer as any)._shapeId = id;
+    if (layer.options) (layer.options as any).shapeId = id;
+    if (layer.feature && layer.feature.properties) {
+      layer.feature.properties._shapeId = id;
+    }
+    if (layer.getLayers) {
+      layer.getLayers().forEach((sub: any) => propagateShapeId(sub, id));
+    }
+  }
+
+  // Helper to retrieve shapeId from any layer variant
+  const getShapeId = (layer: any): string | undefined => {
+    return (
+      (layer as any)._shapeId ||
+      layer?.options?.shapeId ||
+      layer?.feature?.properties?._shapeId
+    );
   };
 
   return (
