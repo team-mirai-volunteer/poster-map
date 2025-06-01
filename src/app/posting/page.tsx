@@ -398,7 +398,26 @@ export default function PostingPage() {
     if (layer.getLayers) {
       layer.getLayers().forEach((sub: any) => propagateShapeId(sub, id));
     }
+
+    // After ensuring id, bind change events
+    attachPersistenceEvents(layer);
   }
+
+  function attachPersistenceEvents(layer: any) {
+    if (!layer || !layer.pm) return;
+
+    // avoid duplicate
+    layer.off('pm:change', onLayerChange);
+    layer.off('pm:dragend', onLayerChange);
+
+    layer.on('pm:change', onLayerChange);
+    layer.on('pm:dragend', onLayerChange);
+  }
+
+  const onLayerChange = async (e: any) => {
+    const layer = e.layer || e.target;
+    await saveOrUpdateLayer(layer);
+  };
 
   // Helper to retrieve shapeId from any layer variant
   const getShapeId = (layer: any): string | undefined => {
