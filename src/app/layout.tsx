@@ -1,8 +1,8 @@
 import type { Metadata } from 'next'
 
 export const metadata: Metadata = {
-  title: 'メニュー | 安野たかひろ選挙掲示板マップ',
-  description: '安野たかひろ選挙掲示板マップ',
+  title: 'メニュー | チームみらいマップ',
+  description: 'チームみらいマップ',
 }
 
 export default function RootLayout({

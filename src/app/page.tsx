@@ -4,7 +4,7 @@ export default function Home() {
   return (
     <div className="container-sm my-5">
       <div className="col-lg-12 px-0">
-        <h3 className="mb-4">安野たかひろ 選挙掲示板マップ</h3>
+        <h3 className="mb-4">チームみらいマップ</h3>
 
         <div className="list-group mb-4">
           <Link href="/summary" className="list-group-item list-group-item-action">
@@ -53,12 +53,12 @@ export default function Home() {
 
         <div>
           <a 
-            href="https://takahiroanno.com/" 
+            href="https://team-mir.ai/"
             target="_blank" 
             rel="noopener noreferrer" 
             className="link-secondary"
           >
-            安野たかひろ 公式ホームページ
+            チームみらい 公式ホームページ
           </a>
         </div>
       </div>
