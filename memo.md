@@ -1,3 +1,4 @@
+`npm install`
 `npx prisma init`
 `npm run dev`
 `npm run build`
