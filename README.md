@@ -93,7 +93,7 @@ crontab -e
 ## 開発環境
 ポスターマップの動作確認をする際は、ローカルでHTTPサーバを立ち上げる。
 ```sh
-npx http-server
+npm run dev
 ```
 
 ## 謝辞
