@@ -17,6 +17,10 @@ export default function PostingPage() {
   const [shapeCount, setShapeCount] = useState(0);
   const autoSave = true;
 
+  useEffect(() => {
+    document.title = 'チームみらい機関誌配布マップ';
+  }, []);
+
 
   // Initialize Geoman when map is ready
   useEffect(() => {
