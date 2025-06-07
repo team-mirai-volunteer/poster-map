@@ -32,20 +32,27 @@ export default function PostingPageClient() {
 
       mapInstance.pm.addControls({
         position: 'topleft',
-        drawControls: true,
-        editControls: true,
-        optionsControls: true,
-        customControls: false,
-        oneBlock: false,
-        drawMarker: true,
-        drawRectangle: true,
-        drawPolyline: true,
+        // 以下はデフォルトでtrue
+        drawMarker: false,
+        drawCircleMarker: false,
+        drawPolyline: false,
+        drawRectangle: false,
         drawPolygon: true,
-        drawCircle: true,
+        drawCircle: false,
+        drawText: true,
+        // modes
         editMode: true,
         dragMode: true,
-        cutPolygon: true,
+        cutPolygon: false,
         removalMode: true,
+        rotateMode: false,
+        oneBlock: false,
+        // controls
+        drawControls: true,
+        editControls: true,
+        optionsControls: false,
+        customControls: false,  // これ何か不明
+        // 以下はデフォルトでfalse
       });
 
       console.log('Geoman controls added successfully');
