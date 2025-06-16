@@ -39,6 +39,7 @@ https://anno-poster-map.netlify.app/
 GOOGLE_SHEETS_API_KEY=your_google_sheets_api_key_here
 GOOGLE_SERVICE_ACCOUNT_KEY_PATH=/path/to/service-account-key.json
 NETLIFY_AUTH_TOKEN=your_netlify_auth_token_here
+OPENROUTER_API_KEY=your_openrouter_api_key_here
 DATABASE_URL=your_database_connection_string_here
 ```
 
@@ -77,10 +78,13 @@ load_dotenv()
 # 環境変数の取得
 api_key = os.environ.get('GOOGLE_SHEETS_API_KEY')
 service_account_path = os.environ.get('GOOGLE_SERVICE_ACCOUNT_KEY_PATH')
+openrouter_key = os.environ.get('OPENROUTER_API_KEY')
 
 # 必須の環境変数チェック
 if not api_key:
     raise ValueError("GOOGLE_SHEETS_API_KEY環境変数が設定されていません")
+if not openrouter_key:
+    raise ValueError("OPENROUTER_API_KEY環境変数が設定されていません")
 ```
 
 #### 5. セキュリティのベストプラクティス
