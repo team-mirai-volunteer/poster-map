@@ -6,8 +6,6 @@ import unicodedata
 import re
 import os
 from typing import Dict, List, Tuple, Any, Optional
-from google.auth import default
-from google.auth.transport.requests import Request
 
 KANJI_NUMERAL_MAP = {
     "〇": 0, "一": 1, "二": 2, "三": 3, "四": 4,
@@ -40,40 +38,18 @@ def normalize_address_digits(addr: str) -> str:
 def clean(val: Any) -> str:
     return val.strip().strip("　") if isinstance(val, str) else str(val)
 
-def get_auth_token():
-    """Get OAuth2 token for Google APIs using Application Default Credentials"""
-    try:
-        credentials, _ = default()
-        if not credentials.valid:
-            credentials.refresh(Request())
-        return credentials.token
-    except Exception:
-        return None
-
-def get_lat_lng(address: str, api_key: str = None) -> Tuple[str, str]:
+def get_lat_lng(address: str, api_key: str) -> Tuple[str, str]:
     url = "https://maps.googleapis.com/maps/api/geocode/json"
-    params = {"address": address}
-    headers = {}
-    
-    # Use API key if provided, otherwise use OAuth token
-    if api_key:
-        params["key"] = api_key
-    else:
-        token = get_auth_token()
-        if token:
-            headers["Authorization"] = f"Bearer {token}"
-        else:
-            return "ERROR:NO_AUTH", "ERROR:認証情報が見つかりません"
-    
+    params = {"address": address, "key": api_key}
     try:
-        res = requests.get(url, params=params, headers=headers)
+        res = requests.get(url, params=params)
         data = res.json()
         status = data.get("status")
         if status == "OK":
             loc = data["results"][0]["geometry"]["location"]
             return str(loc["lat"]), str(loc["lng"])
         elif status == "REQUEST_DENIED":
-            error_msg = data.get('error_message', '認証エラー')
+            error_msg = data.get('error_message', 'APIキーが無効です。')
             return f"ERROR:REQUEST_DENIED", f"ERROR:{error_msg}"
         else:
             return f"ERROR:{status}", f"ERROR:{status}"
@@ -104,8 +80,11 @@ def process_csv_data(csv_data: List[List[str]], config: Dict[str, Any],
     header = list(format_config.keys())
     
     api_needed = any("{lat}" in v or "{long}" in v for v in format_config.values())
-    api_key = config.get("api", {}).get("key", None)
+    api_key = config.get("api", {}).get("key") if api_needed else None
     sleep_msec = int(config.get("api", {}).get("sleep", 200)) if api_needed else 200
+    
+    if api_needed and not api_key:
+        raise ValueError("緯度経度を取得するにはAPIキーが必要です。")
     
     results = [header]
     

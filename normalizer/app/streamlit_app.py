@@ -26,7 +26,12 @@ def main():
     with st.sidebar:
         st.header("設定")
         
-        # API key removed - using Application Default Credentials
+        api_key = st.text_input(
+            "Google Maps APIキー",
+            type="password",
+            value=os.getenv("GOOGLE_MAPS_API_KEY", ""),
+            help="Google Maps Geocoding APIキーを入力してください"
+        )
         
         sleep_ms = st.slider(
             "APIコール間隔 (ミリ秒)",
@@ -121,7 +126,7 @@ def main():
                 'prefecture': prefecture,
                 'city': city,
                 'column_mapping': column_mapping,
-                'api_key': None,
+                'api_key': api_key,
                 'sleep_ms': sleep_ms,
                 'normalize_digits': normalize_digits
             }
@@ -131,17 +136,20 @@ def main():
         
         config_data = st.session_state['config']
         
-        # Using Application Default Credentials for Google Maps API
+        if not config_data['api_key']:
+            st.warning("⚠️ Google Maps APIキーが設定されていません。緯度経度の取得ができません。")
         
         if st.button("🚀 CSV正規化を実行", type="primary", use_container_width=True):
-            # Using Application Default Credentials
+            if not config_data['api_key']:
+                st.error("Google Maps APIキーが必要です")
+                return
             
             try:
                 config = create_config_from_params(
                     config_data['prefecture'],
                     config_data['city'],
                     config_data['column_mapping'],
-                    None,  # No API key needed
+                    config_data['api_key'],
                     config_data['sleep_ms'],
                     config_data['normalize_digits']
                 )
@@ -190,11 +198,11 @@ def main():
         st.markdown("""
         1. **CSVファイルをアップロード**: ポスター掲示場情報が含まれるCSVファイルを選択
         2. **設定を構成**: 都道府県、市区町村、列マッピングを設定
-        3. **認証**: Application Default Credentialsを使用
+        3. **APIキーを入力**: Google Maps Geocoding APIキーを入力
         4. **処理を実行**: 正規化処理を開始
         5. **結果をダウンロード**: 処理済みCSVファイルをダウンロード
         
-        - **認証**: サービスアカウントまたはApplication Default Credentialsが設定されている必要があります
+        - **Google Maps APIキー**: Geocoding APIが有効になっている必要があります
         - **CSVフォーマット**: ヘッダー行を含む標準的なCSV形式
         - **列マッピング**: 番号、住所、名称列の指定が必要
         

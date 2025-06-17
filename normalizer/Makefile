@@ -1,4 +1,4 @@
-.PHONY: help build run-local deploy setup-secrets clean
+.PHONY: help build run deploy setup-secrets clean
 
 # Load .env file if it exists
 -include .env
@@ -28,11 +28,10 @@ build-linux:
 	docker buildx build --platform linux/amd64 -t $(SERVICE_NAME) --load .
 	docker tag $(SERVICE_NAME) $(IMAGE_NAME)
 
-run-local:
+run:
 	@echo "ローカルでコンテナを実行中..."
 	docker run -p 8501:8501 \
-		-v ~/.config/gcloud:/root/.config/gcloud:ro \
-		-e GOOGLE_APPLICATION_CREDENTIALS=/root/.config/gcloud/application_default_credentials.json \
+		-e GOOGLE_MAPS_API_KEY="$(GOOGLE_MAPS_API_KEY)" \
 		$(SERVICE_NAME)
 
 push:
@@ -50,7 +49,8 @@ deploy: build-linux push
 		--memory 1Gi \
 		--cpu 1 \
 		--max-instances 10 \
-		--service-account=$(SA_NORMALIZER)
+		--service-account=$(SA_NORMALIZER) \
+		--update-secrets GOOGLE_MAPS_API_KEY=google-maps-api-key-auto:latest
 
 setup-secrets:
 	@echo "Google Secret Managerにシークレットを作成中..."

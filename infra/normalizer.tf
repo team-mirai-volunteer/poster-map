@@ -9,9 +9,26 @@ resource "google_service_account" "normalizer" {
   description  = "Service account for CSV normalizer Cloud Run service"
 }
 
-# Grant the service account permission to invoke Google Maps services
-# Note: The Maps API doesn't have specific IAM roles - it uses project-level API enablement
-# The service account just needs to be from the project where Maps API is enabled
+# Secret for Google Maps API Key
+resource "google_secret_manager_secret" "normalizer_google_maps_api_key" {
+  secret_id = "google-maps-api-key"
+  
+  replication {
+    auto {}
+  }
+}
+
+resource "google_secret_manager_secret_version" "normalizer_google_maps_api_key" {
+  secret = google_secret_manager_secret.normalizer_google_maps_api_key.id
+  secret_data = var.google_maps_api_key
+}
+
+# Grant the service account permission to access the secret
+resource "google_secret_manager_secret_iam_member" "normalizer_secret_accessor" {
+  secret_id = google_secret_manager_secret.normalizer_google_maps_api_key.id
+  role      = "roles/secretmanager.secretAccessor"
+  member    = "serviceAccount:${google_service_account.normalizer.email}"
+}
 
 # Artifact Registry repository for Docker images
 resource "google_artifact_registry_repository" "normalizer" {
