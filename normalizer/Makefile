@@ -30,6 +30,12 @@ build-linux:
 
 run:
 	@echo "ローカルでコンテナを実行中..."
+	@if [ -z "$(GOOGLE_MAPS_API_KEY)" ]; then \
+		echo "エラー: GOOGLE_MAPS_API_KEYが設定されていません"; \
+		echo "使用方法: GOOGLE_MAPS_API_KEY=your-key make run"; \
+		echo "または .env ファイルに設定してください"; \
+		exit 1; \
+	fi
 	docker run -p 8501:8501 \
 		-e GOOGLE_MAPS_API_KEY="$(GOOGLE_MAPS_API_KEY)" \
 		$(SERVICE_NAME)
@@ -49,14 +55,7 @@ deploy: build-linux push
 		--memory 1Gi \
 		--cpu 1 \
 		--max-instances 10 \
-		--service-account=$(SA_NORMALIZER) \
-		--update-secrets GOOGLE_MAPS_API_KEY=google-maps-api-key:latest
-
-setup-secrets:
-	@echo "Google Secret Managerにシークレットを作成中..."
-	@read -p "Google Maps APIキーを入力してください: " api_key; \
-	echo "$$api_key" | gcloud secrets create google-maps-api-key --data-file=-
-	@echo "シークレットが作成されました。"
+		--service-account=$(SA_NORMALIZER)
 
 clean:
 	@echo "ローカルイメージを削除中..."

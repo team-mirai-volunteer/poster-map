@@ -26,12 +26,7 @@ def main():
     with st.sidebar:
         st.header("設定")
         
-        api_key = st.text_input(
-            "Google Maps APIキー",
-            type="password",
-            value=os.getenv("GOOGLE_MAPS_API_KEY", ""),
-            help="Google Maps Geocoding APIキーを入力してください"
-        )
+        api_key = os.getenv("GOOGLE_MAPS_API_KEY", "")
         
         sleep_ms = st.slider(
             "APIコール間隔 (ミリ秒)",
@@ -137,11 +132,11 @@ def main():
         config_data = st.session_state['config']
         
         if not config_data['api_key']:
-            st.warning("⚠️ Google Maps APIキーが設定されていません。緯度経度の取得ができません。")
+            st.error("⚠️ Google Maps APIキーが環境変数に設定されていません。")
         
         if st.button("🚀 CSV正規化を実行", type="primary", use_container_width=True):
             if not config_data['api_key']:
-                st.error("Google Maps APIキーが必要です")
+                st.error("Google Maps APIキーが環境変数GOOGLE_MAPS_API_KEYに設定されていません")
                 return
             
             try:
@@ -198,11 +193,10 @@ def main():
         st.markdown("""
         1. **CSVファイルをアップロード**: ポスター掲示場情報が含まれるCSVファイルを選択
         2. **設定を構成**: 都道府県、市区町村、列マッピングを設定
-        3. **APIキーを入力**: Google Maps Geocoding APIキーを入力
-        4. **処理を実行**: 正規化処理を開始
-        5. **結果をダウンロード**: 処理済みCSVファイルをダウンロード
+        3. **処理を実行**: 正規化処理を開始
+        4. **結果をダウンロード**: 処理済みCSVファイルをダウンロード
         
-        - **Google Maps APIキー**: Geocoding APIが有効になっている必要があります
+        - **認証**: Google Maps APIキーは環境変数から自動的に読み込まれます
         - **CSVフォーマット**: ヘッダー行を含む標準的なCSV形式
         - **列マッピング**: 番号、住所、名称列の指定が必要
         
