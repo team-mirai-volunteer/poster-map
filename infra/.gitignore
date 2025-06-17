@@ -1,0 +1,13 @@
+# Terraform files
+*.tfstate
+*.tfstate.*
+.terraform/
+.terraform.lock.hcl
+
+# Environment files
+.env
+.env.local
+*.tfvars
+
+# macOS
+.DS_Store

@@ -1,0 +1,6 @@
+# Copy this file to terraform.tfvars and fill in your values
+
+# Common variables
+project_id     = "your-gcp-project-id"
+project_number = "your-gcp-project-number"
+region         = "asia-northeast1"
