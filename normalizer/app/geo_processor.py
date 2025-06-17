@@ -38,23 +38,41 @@ def normalize_address_digits(addr: str) -> str:
 def clean(val: Any) -> str:
     return val.strip().strip("　") if isinstance(val, str) else str(val)
 
-def get_lat_lng(address: str, api_key: str) -> Tuple[str, str]:
+def get_lat_lng(address: str, api_key: str, max_retries: int = 5) -> Tuple[str, str]:
     url = "https://maps.googleapis.com/maps/api/geocode/json"
     params = {"address": address, "key": api_key}
-    try:
-        res = requests.get(url, params=params)
-        data = res.json()
-        status = data.get("status")
-        if status == "OK":
-            loc = data["results"][0]["geometry"]["location"]
-            return str(loc["lat"]), str(loc["lng"])
-        elif status == "REQUEST_DENIED":
-            error_msg = data.get('error_message', 'APIキーが無効です。')
-            return f"ERROR:REQUEST_DENIED", f"ERROR:{error_msg}"
-        else:
-            return f"ERROR:{status}", f"ERROR:{status}"
-    except Exception as e:
-        return f"ERROR:{str(e)}", f"ERROR:{str(e)}"
+    
+    for attempt in range(max_retries):
+        try:
+            res = requests.get(url, params=params)
+            data = res.json()
+            status = data.get("status")
+            
+            if status == "OK":
+                loc = data["results"][0]["geometry"]["location"]
+                return str(loc["lat"]), str(loc["lng"])
+            elif status == "REQUEST_DENIED":
+                error_msg = data.get('error_message', 'APIキーが無効です。')
+                # Retry on permission errors
+                if attempt < max_retries - 1:
+                    time.sleep(1)  # Wait 1 second before retry
+                    continue
+                return f"ERROR:REQUEST_DENIED", f"ERROR:{error_msg}"
+            elif status == "OVER_QUERY_LIMIT":
+                # Retry on rate limit errors
+                if attempt < max_retries - 1:
+                    time.sleep(2)  # Wait 2 seconds before retry
+                    continue
+                return f"ERROR:{status}", f"ERROR:レート制限に達しました"
+            else:
+                return f"ERROR:{status}", f"ERROR:{status}"
+        except Exception as e:
+            if attempt < max_retries - 1:
+                time.sleep(1)
+                continue
+            return f"ERROR:{str(e)}", f"ERROR:{str(e)}"
+    
+    return "ERROR:MAX_RETRIES", "ERROR:最大リトライ回数を超えました"
 
 def render_template(template_str: str, row: List[str], cache: Dict[str, Any], 
                    full_api_address: str, api_key: str, sleep_msec: int) -> str:
@@ -65,9 +83,11 @@ def render_template(template_str: str, row: List[str], cache: Dict[str, Any],
             return clean(row[idx]) if idx < len(row) else ""
         elif token in ("lat", "long"):
             if "latlng" not in cache:
-                lat, lng = get_lat_lng(full_api_address, api_key)
+                lat, lng = get_lat_lng(full_api_address, api_key, max_retries=5)
                 cache["latlng"] = (lat, lng)
-                time.sleep(sleep_msec / 1000)
+                # Only sleep if successful (to avoid double delays on retries)
+                if not lat.startswith("ERROR:"):
+                    time.sleep(sleep_msec / 1000)
             lat, lng = cache["latlng"]
             return str(clean(lat if token == "lat" else lng))
         else:
