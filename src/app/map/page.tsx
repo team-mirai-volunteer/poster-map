@@ -16,7 +16,6 @@ function getPinNote(note: string | null): string {
   return note || "なし";
 }
 
-// loadBoardPins関数は変更なし
 async function loadBoardPins(
   pins: PinData[],
   layer: LayerGroup,
@@ -42,12 +41,15 @@ async function loadBoardPins(
     });
     
     marker.bindPopup(`
-      <b>${pin.place_name || '名称未設定'}</b><br>
-      ${pin.cities?.city || '不明'} ${pin.number}<br>
-      --------------------<br>
-      ステータス: ${getStatusText(pin.status)}<br>
-      備考: ${getPinNote(pin.note)}<br>
-      座標: <a href="https://www.google.com/maps?q=${pin.lat},${pin.long}" target="_blank" rel="noopener noreferrer">Google Mapで開く</a>
+      <div style="font-size: 14px; line-height: 1.6;">
+        <b>${pin.place_name || '名称未設定'}</b><br>
+        <hr style="margin: 4px 0;">
+        <strong>住所:</strong> ${pin.address}<br>
+        <strong>掲示板番号:</strong> ${pin.number}<br>
+        <strong>ステータス:</strong> ${getStatusText(pin.status)}<br>
+        <strong>備考:</strong> ${getPinNote(pin.note)}<br>
+        <a href="https://www.google.com/maps?q=${pin.lat},${pin.long}" target="_blank" rel="noopener noreferrer">Google Mapで開く</a>
+      </div>
     `);
   });
 }
@@ -174,6 +176,15 @@ function MapPageContent() {
 
   }, [mapInstance, pins, prefecture]);
 
+  const statusButtons = [
+    { label: '未', value: 0 },
+    { label: '完了', value: 1 },
+    { label: '貼り付け確認完了', value: 7 },
+    { label: '要確認', value: 4 },
+    { label: '異常', value: 2 },
+    { label: '異常対応中', value: 5 },
+  ];
+  
   return (
     <>
       <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
@@ -190,12 +201,30 @@ function MapPageContent() {
           <p><strong>ステータス:</strong> {getStatusText(currentStatus ?? selectedPin.status)}</p>
           
           <div style={{ display: 'flex', gap: '5px', flexWrap: 'wrap', marginBottom: '15px' }}>
-            {selectedPin.status === 0 && (
-              <button onClick={() => setCurrentStatus(1)}>完了</button>
-            )}
-            {selectedPin.status === 1 && (
-              <button onClick={() => setCurrentStatus(7)}>貼り付け確認完了</button>
-            )}
+            {statusButtons.map(buttonInfo => {
+              // 「予約」されているステータスと一致するかどうか
+              const isSelected = currentStatus === buttonInfo.value;
+              
+              // 選択状態に応じてスタイルを変更
+              const buttonStyle = {
+                padding: '6px 12px',
+                border: isSelected ? '2px solid #0070f3' : '1px solid #ccc',
+                fontWeight: isSelected ? 'bold' : 'normal',
+                backgroundColor: isSelected ? '#e6f2ff' : 'white',
+                cursor: 'pointer',
+                borderRadius: '4px',
+              };
+
+              return (
+                <button
+                  key={buttonInfo.value}
+                  onClick={() => setCurrentStatus(buttonInfo.value)}
+                  style={buttonStyle}
+                >
+                  {buttonInfo.label}
+                </button>
+              );
+            })}
           </div>
           
           <div>

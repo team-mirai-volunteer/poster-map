@@ -14,25 +14,22 @@ export function getStatusText(status: number): string {
 
 export function getStatusColor(status: number): string {
   switch (status) {
-    case 0:
-      return '#0288D1';
-    case 1:
-      return '#FFD600';
-    case 2:
-      return '#E65100';
-    case 3:
-      return '#0F9D58';
-    case 4:
-      return '#FF9706';
-    case 5:
-      return '#9106E9';
-    case 6:
-      return '#FFD600';
-    case 7://追加
-      return '#FFD700';
-
+    case 0: // 未
+      return '#3498DB'; // 青
+    case 1: // 完了
+      return '#2ECC71'; // 緑
+    case 7: // 貼り付け確認完了
+      return '#F4D03F'; // 黄色
+    case 2: // 異常
+      return '#E74C3C'; // 赤
+    case 4: // 要確認
+      return '#F39C12'; // オレンジ
+    case 5: // 異常対応中
+      return '#9B59B6'; // 紫
+    case 6: // 削除
+      return '#95A5A6'; // グレー
     default:
-      return '#666666';
+      return '#FFFFFF'; // 不明な場合は白
   }
 }
 
