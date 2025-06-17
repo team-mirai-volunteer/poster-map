@@ -24,6 +24,89 @@ https://anno-poster-map.netlify.app/
 - `/summary`: 市区町村ごとの完了率をヒートマップとして可視化したマップ
 - `/vote`: 期日前投票所のみを表示したマップ
 
+## 環境変数とAPI キー管理
+
+### 概要
+このプロジェクトでは、Google Spreadsheet APIやその他の外部サービスのAPI キーを安全に管理するために、環境変数を使用することを強く推奨します。
+
+### セットアップ手順
+
+#### 1. .envファイルの作成
+プロジェクトのルートディレクトリに`.env`ファイルを作成し、API キーや機密情報を記載します：
+
+```bash
+# .env ファイルの例
+GOOGLE_SHEETS_API_KEY=your_google_sheets_api_key_here
+GOOGLE_SERVICE_ACCOUNT_KEY_PATH=/path/to/service-account-key.json
+NETLIFY_AUTH_TOKEN=your_netlify_auth_token_here
+OPENROUTER_API_KEY=your_openrouter_api_key_here
+DATABASE_URL=your_database_connection_string_here
+```
+
+#### 2. .gitignoreの設定
+`.env`ファイルがGitリポジトリにコミットされないよう、`.gitignore`に追加します：
+
+```gitignore
+# 環境変数ファイル
+.env
+.env.local
+.env.production
+.env.staging
+
+# Google Service Account キー
+*.json
+service-account-*.json
+```
+
+#### 3. python-dotenvのインストール
+Pythonスクリプトで環境変数を読み込むために`python-dotenv`をインストールします：
+
+```bash
+pip install python-dotenv
+```
+
+#### 4. Pythonスクリプトでの使用方法
+スクリプトの冒頭で環境変数を読み込みます：
+
+```python
+import os
+from dotenv import load_dotenv
+
+# .envファイルから環境変数を読み込み
+load_dotenv()
+
+# 環境変数の取得
+api_key = os.environ.get('GOOGLE_SHEETS_API_KEY')
+service_account_path = os.environ.get('GOOGLE_SERVICE_ACCOUNT_KEY_PATH')
+openrouter_key = os.environ.get('OPENROUTER_API_KEY')
+
+# 必須の環境変数チェック
+if not api_key:
+    raise ValueError("GOOGLE_SHEETS_API_KEY環境変数が設定されていません")
+if not openrouter_key:
+    raise ValueError("OPENROUTER_API_KEY環境変数が設定されていません")
+```
+
+#### 5. セキュリティのベストプラクティス
+- **絶対にAPI キーをコードに直接記載しない**
+- **本番環境では環境変数を直接設定する**（.envファイルは開発環境のみ）
+- **定期的にAPI キーをローテーションする**
+- **最小権限の原則に従ってAPI キーの権限を設定する**
+
+#### 6. 本番環境での設定例
+本番環境（サーバーやCI/CD）では、以下のように環境変数を直接設定します：
+
+```bash
+# Linux/macOS
+export GOOGLE_SHEETS_API_KEY="your_api_key_here"
+
+# systemdサービスファイル
+Environment=GOOGLE_SHEETS_API_KEY=your_api_key_here
+
+# cronジョブ
+*/5 * * * * GOOGLE_SHEETS_API_KEY=your_api_key_here /path/to/script.py
+```
+
 ## 環境
 - Google Spreadsheet / Google Apps Script
     - 掲示板の位置情報/貼り付け状況を管理するデータベースとして使用
