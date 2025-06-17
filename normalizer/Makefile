@@ -31,7 +31,8 @@ build-linux:
 run-local:
 	@echo "ローカルでコンテナを実行中..."
 	docker run -p 8501:8501 \
-		-e GOOGLE_MAPS_API_KEY="$(GOOGLE_MAPS_API_KEY)" \
+		-v ~/.config/gcloud:/root/.config/gcloud:ro \
+		-e GOOGLE_APPLICATION_CREDENTIALS=/root/.config/gcloud/application_default_credentials.json \
 		$(SERVICE_NAME)
 
 push:
@@ -64,7 +65,8 @@ clean:
 test-local:
 	@echo "ローカルテスト用にコンテナを起動中..."
 	docker run -d -p 8501:8501 \
-		-e GOOGLE_MAPS_API_KEY="$(GOOGLE_MAPS_API_KEY)" \
+		-v ~/.config/gcloud:/root/.config/gcloud:ro \
+		-e GOOGLE_APPLICATION_CREDENTIALS=/root/.config/gcloud/application_default_credentials.json \
 		--name $(SERVICE_NAME)-test \
 		$(SERVICE_NAME)
 	@echo "アプリケーションは http://localhost:8501 で利用可能です"
