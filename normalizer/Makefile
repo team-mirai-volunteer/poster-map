@@ -1,5 +1,9 @@
 .PHONY: help build run-local deploy setup-secrets clean
 
+# Load .env file if it exists
+-include .env
+export
+
 PROJECT_ID ?= $(shell gcloud config get-value project)
 SERVICE_NAME = csv-normalizer
 REGION = asia-northeast1
@@ -45,8 +49,7 @@ deploy: build-linux push
 		--memory 1Gi \
 		--cpu 1 \
 		--max-instances 10 \
-		--set-env-vars "GOOGLE_MAPS_API_KEY=projects/$(PROJECT_ID)/secrets/google-maps-api-key/versions/latest" \
-		--update-secrets GOOGLE_MAPS_API_KEY=google-maps-api-key:latest
+		--service-account=$(SA_NORMALIZER)
 
 setup-secrets:
 	@echo "Google Secret Managerにシークレットを作成中..."
