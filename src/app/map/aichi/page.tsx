@@ -1,0 +1,37 @@
+import Link from 'next/link'
+
+export default function AichiPage() {
+    return (
+    <div className="container-sm my-5">
+        <div className="col-lg-12 px-0">
+            <h3 className="mb-4">チームみらいマップ 愛知県</h3>
+            <div className="list-group mb-4">
+                <Link href="/map/aichi/all" className="list-group-item list-group-item-action">
+                    愛知県全域
+                </Link>
+                <Link href="/map/aichi?block=23-city" className="list-group-item list-group-item-action">
+                    
+                </Link>
+                <Link href="/map/aichi?block=23-east" className="list-group-item list-group-item-action">
+                    
+                </Link>
+                <Link href="/map/aichi?block=23-west" className="list-group-item list-group-item-action">
+                    
+                </Link>
+                <Link href="/map/aichi?block=tama-north" className="list-group-item list-group-item-action">
+                    
+                </Link>
+                <Link href="/map/aichi?block=tama-south" className="list-group-item list-group-item-action">
+                    
+                </Link>
+                <Link href="/map/aichi?block=tama-west" className="list-group-item list-group-item-action">
+                    
+                </Link>
+                <Link href="/map/aichi?block=island" className="list-group-item list-group-item-action">
+                    
+                </Link>
+            </div>
+        </div>
+    </div>
+    )
+}

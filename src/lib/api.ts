@@ -1,31 +1,36 @@
 import { AreaList, ProgressData, VoteVenue, PinData } from './types';
 
-export async function getAreaList(): Promise<AreaList> {
-  const response = await fetch('/data/arealist.json');
+export async function getAreaList(area:string | null = ""): Promise<AreaList> {
+  const input = area ? `${area}/` : ""
+  const response = await fetch(`/data/${input}arealist.json`);
   return response.json();
 }
 
-export async function getProgress(): Promise<ProgressData> {
-  const response = await fetch('/data/summary.json');
+export async function getProgress(area:string | null = ""): Promise<ProgressData> {
+  const input = area ? `${area}/` : ""
+  const response = await fetch(`/data/${input}summary.json`);
   return response.json();
 }
 
-export async function getProgressCountdown(): Promise<ProgressData> {
-  const response = await fetch('/data/summary_absolute.json');
+export async function getProgressCountdown(area:string | null = ""): Promise<ProgressData> {
+  const input = area ? `${area}/` : ""
+  const response = await fetch(`/data/${input}summary_absolute.json`);
   return response.json();
 }
 
-export async function getVoteVenuePins(): Promise<VoteVenue[]> {
-  const response = await fetch('/data/vote_venue.json');
+export async function getVoteVenuePins(area:string | null = ""): Promise<VoteVenue[]> {
+  const input = area ? `${area}/` : ""
+  const response = await fetch(`/data/${input}vote_venue.json`);
   return response.json();
 }
 
-export async function getBoardPins(block: string | null = null, smallBlock: string | null = null): Promise<PinData[]> {
+export async function getBoardPins(block: string | null = null, smallBlock: string | null = null, area:string | null = ""): Promise<PinData[]> {
+  const input = area ? `${area}/` : ""
   let response;
   if (block === null) {
-    response = await fetch('/data/all.json');
+    response = await fetch(`/data/${input}all.json`);
   } else {
-    response = await fetch(`/data/block/${block}.json`);
+    response = await fetch(`/data/${input}block/${block}.json`);
   }
   const data: PinData[] = await response.json();
 

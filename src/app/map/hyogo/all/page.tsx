@@ -53,8 +53,8 @@ async function loadBoardPins(pins: PinData[], layer: any, areaList: AreaList, L:
   });
 }
 
-async function loadVoteVenuePins(layer: any, L: any) {
-  const pins = await getVoteVenuePins();
+async function loadVoteVenuePins(layer: any, L: any, area:string | null = "") {
+  const pins = await getVoteVenuePins(area);
   const grayIcon = createGrayIcon(L);
   pins.forEach(pin => {
     const marker = L.marker([pin.lat, pin.long], {
@@ -64,7 +64,7 @@ async function loadVoteVenuePins(layer: any, L: any) {
       <b>期日前投票所: ${pin.name}</b><br>
       ${pin.address}<br>
       期間: ${pin.period}<br>
-      座標: <a href="https://www.google.com/maps/search/${pin.lat},+${pin.long}" target="_blank" rel="noopener noreferrer">(${pin.lat}, ${pin.long})</a>
+       <a href="https://www.google.com/maps/search/${pin.lat},+${pin.long}" target="_blank" rel="noopener noreferrer">(${pin.lat}, ${pin.long})</a>
     `);
   });
 }
@@ -119,8 +119,8 @@ function MapPageContent() {
           latlong = [mapConfig[block].lat, mapConfig[block].long];
           zoom = mapConfig[block].zoom;
         } else {
-          latlong = [35.6988862, 139.4649636];
-          zoom = 11;
+          latlong = [35.102136871207165, 134.82193301286011];
+          zoom = 10;
         }
         
         mapInstance.setView(latlong, zoom);
@@ -139,27 +139,28 @@ function MapPageContent() {
 
       try {
         // Load board pins
-        const pins = await getBoardPins(block, smallBlock);
-        const areaList = await getAreaList();
+        // const area = "kanto/chiba"
+        // const pins = await getBoardPins(block, smallBlock, area);
+        // const areaList = await getAreaList(area);
         
-        await loadBoardPins(pins, overlays['削除'], areaList, L, 6);
-        await loadBoardPins(pins, overlays['完了'], areaList, L, 1);
-        await loadBoardPins(pins, overlays['異常'], areaList, L, 2);
-        await loadBoardPins(pins, overlays['要確認'], areaList, L, 4);
-        await loadBoardPins(pins, overlays['異常対応中'], areaList, L, 5);
-        await loadBoardPins(pins, overlays['未'], areaList, L, 0);
+        // await loadBoardPins(pins, overlays['削除'], areaList, L, 6);
+        // await loadBoardPins(pins, overlays['完了'], areaList, L, 1);
+        // await loadBoardPins(pins, overlays['異常'], areaList, L, 2);
+        // await loadBoardPins(pins, overlays['要確認'], areaList, L, 4);
+        // await loadBoardPins(pins, overlays['異常対応中'], areaList, L, 5);
+        // await loadBoardPins(pins, overlays['未'], areaList, L, 0);
 
         // Load progress data
-        const [progress, progressCountdown] = await Promise.all([
-          getProgress(),
-          getProgressCountdown()
-        ]);
+        // const [progress, progressCountdown] = await Promise.all([
+        //   getProgress(area),
+        //   getProgressCountdown(area)
+        // ]);
 
-        createProgressBox(L, Number((progress.total * 100).toFixed(2)), 'topleft').addTo(mapInstance);
-        createProgressBoxCountdown(L, parseInt(progressCountdown.total.toString()), 'topleft').addTo(mapInstance);
+        // createProgressBox(L, Number((progress.total * 100).toFixed(2)), 'topleft').addTo(mapInstance);
+        // createProgressBoxCountdown(L, parseInt(progressCountdown.total.toString()), 'topleft').addTo(mapInstance);
 
         // Load vote venue pins
-        await loadVoteVenuePins(overlays['期日前投票所'], L);
+        // await loadVoteVenuePins(overlays['期日前投票所'], L);
 
       } catch (error) {
         console.error('Error loading map data:', error);
