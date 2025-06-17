@@ -1,0 +1,56 @@
+# yaml-language-server: $schema=https://coderabbit.ai/integrations/schema.v2.json
+# https://docs.coderabbit.ai/guides/configure-coderabbit/
+
+language: "ja-JP"
+early_access: true
+reviews:
+  profile: "chill"
+  high_level_summary: true
+  request_changes_workflow: false
+  review_status: false
+  collapse_walkthrough: false
+  poem: false
+  auto_review:
+    enabled: true
+    auto_incremental_review: true
+    drafts: true
+    base_branches:
+      - main
+  path_instructions:
+    - path: "**/*"
+      instructions: "
+      コードの臭い、ロジックエラー、エッジケース、不足しているテストケース、セキュリティの欠陥、重大な問題に焦点を当ててください。
+      リンティング、フォーマット、スタイルの問題などの軽微な問題についてはコメントを避けてください。
+      セキュリティの観点から詳しく調査する価値がある「レッドフラグ」がこのコードにありますか？
+      何が疑わしいのかを説明してください。
+      コードの提案を提供する際は、GitHubの提案フォーマットを使用してください：
+      ```suggestion
+      <code changes>
+      ```
+      "
+    - path: "**/*.{ts,tsx,js,jsx}"
+      instructions: "
+      TypeScript/JavaScriptコードについて：
+      - 型安全性の問題に注意してください
+      - React コンポーネントのベストプラクティスを確認してください
+      - Next.jsの規約に従っているかチェックしてください
+      - 地図表示やデータ処理のロジックに特に注意してください
+      "
+    - path: "**/*.py"
+      instructions: "
+      Pythonスクリプトについて：
+      - データ処理とCSV/JSON変換の正確性を確認してください
+      - ファイルI/Oとエラーハンドリングをチェックしてください
+      - スクリプトの実行順序と依存関係を考慮してください
+      "
+    - path: "**/*.md"
+      instructions: "
+      文法、スペル、句読点に焦点を当ててください。
+      内容の読みやすさと明確さも考慮してください。
+      日本語の文書については、適切な敬語と技術用語の使用を確認してください。
+      "
+  tools:
+    github-checks:
+      enabled: true
+chat:
+  auto_reply: true
