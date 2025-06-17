@@ -9,6 +9,8 @@ from dotenv import load_dotenv
 from geo_processor import process_csv_data, create_config_from_params
 from config_manager import ConfigManager
 
+# Load from .env file in the app directory first, then from environment
+load_dotenv('/app/.env')
 load_dotenv()
 
 st.set_page_config(

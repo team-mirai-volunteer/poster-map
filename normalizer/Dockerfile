@@ -1,3 +1,4 @@
+# syntax=docker/dockerfile:1
 FROM python:3.11-slim
 
 WORKDIR /app
@@ -10,6 +11,12 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 COPY app/ ./app/
+
+# Use secret during build to create .env file
+RUN --mount=type=secret,id=google_maps_api_key \
+    if [ -f /run/secrets/google_maps_api_key ]; then \
+        echo "GOOGLE_MAPS_API_KEY=$(cat /run/secrets/google_maps_api_key)" > /app/.env; \
+    fi
 
 EXPOSE 8501
 

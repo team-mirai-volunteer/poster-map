@@ -20,25 +20,29 @@ help:
 
 build:
 	@echo "Dockerイメージをビルド中..."
-	docker build -t $(SERVICE_NAME) .
+	@if [ -n "$(GOOGLE_MAPS_API_KEY)" ]; then \
+		echo "$(GOOGLE_MAPS_API_KEY)" > .api_key_temp && \
+		DOCKER_BUILDKIT=1 docker build --secret id=google_maps_api_key,src=.api_key_temp -t $(SERVICE_NAME) . && \
+		rm -f .api_key_temp; \
+	else \
+		docker build -t $(SERVICE_NAME) .; \
+	fi
 	docker tag $(SERVICE_NAME) $(IMAGE_NAME)
 
 build-linux:
 	@echo "Linux用のDockerイメージをビルド中 (macOSから)..."
-	docker buildx build --platform linux/amd64 -t $(SERVICE_NAME) --load .
+	@if [ -n "$(GOOGLE_MAPS_API_KEY)" ]; then \
+		echo "$(GOOGLE_MAPS_API_KEY)" > .api_key_temp && \
+		docker buildx build --platform linux/amd64 --secret id=google_maps_api_key,src=.api_key_temp -t $(SERVICE_NAME) --load . && \
+		rm -f .api_key_temp; \
+	else \
+		docker buildx build --platform linux/amd64 -t $(SERVICE_NAME) --load .; \
+	fi
 	docker tag $(SERVICE_NAME) $(IMAGE_NAME)
 
 run:
 	@echo "ローカルでコンテナを実行中..."
-	@if [ -z "$(GOOGLE_MAPS_API_KEY)" ]; then \
-		echo "エラー: GOOGLE_MAPS_API_KEYが設定されていません"; \
-		echo "使用方法: GOOGLE_MAPS_API_KEY=your-key make run"; \
-		echo "または .env ファイルに設定してください"; \
-		exit 1; \
-	fi
-	docker run -p 8501:8501 \
-		-e GOOGLE_MAPS_API_KEY="$(GOOGLE_MAPS_API_KEY)" \
-		$(SERVICE_NAME)
+	docker run -p 8501:8501 $(SERVICE_NAME)
 
 push:
 	@echo "イメージをGoogle Container Registryにプッシュ中..."
