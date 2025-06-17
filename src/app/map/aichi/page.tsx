@@ -5,6 +5,15 @@ export default function AichiPage() {
     <div className="container-sm my-5">
         <div className="col-lg-12 px-0">
             <h3 className="mb-4">チームみらいマップ 愛知県</h3>
+            <div>
+                <a 
+                    href="/"
+                    rel="noopener noreferrer" 
+                    className="link-secondary"
+                >
+                    都道府県へ戻る
+                </a>
+            </div>
             <div className="list-group mb-4">
                 <Link href="/map/aichi/all" className="list-group-item list-group-item-action">
                     愛知県全域
@@ -30,6 +39,15 @@ export default function AichiPage() {
                 <Link href="/map/aichi?block=island" className="list-group-item list-group-item-action">
                     
                 </Link>
+            </div>
+            <div>
+                <a 
+                    href="/"
+                    rel="noopener noreferrer" 
+                    className="link-secondary"
+                >
+                    都道府県へ戻る
+                </a>
             </div>
         </div>
     </div>
