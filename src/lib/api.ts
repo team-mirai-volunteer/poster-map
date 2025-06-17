@@ -1,5 +1,5 @@
 import { supabase } from './supabaseClient';
-import { PinData } from './types'; 
+import { PinData } from './types';
 
 /**
  * Supabaseからポスター掲示場のピン情報を取得します。
@@ -7,8 +7,6 @@ import { PinData } from './types';
  * @param prefecture - 絞り込みたい都道府県名（例：「東京都」）。nullの場合は全件取得。
  * @returns ピン情報の配列
  */
-// src/lib/api.ts に貼り付ける新しい getBoardPins 関数
-
 export async function getBoardPins(prefecture: string | null): Promise<PinData[]> {
   let query = supabase
     .from('pins')
@@ -27,45 +25,37 @@ export async function getBoardPins(prefecture: string | null): Promise<PinData[]
       )
     `);
 
+  // もしprefectureがURLで指定されていたら、それでデータを絞り込む
   if (prefecture) {
-    query = query.eq('cities.prefecture', prefecture);
+    // 【修正点】関連テーブル(cities)の列で絞り込む際の、Supabaseの正しい書き方
+    query = query.filter('cities.prefecture', 'eq', prefecture);
   }
 
-  // データ取得を実行
-  const { data: rawData, error } = await query;
+  const { data, error } = await query;
 
   if (error) {
-    // エラーオブジェクトの中身を詳しく表示させるように変更
-    console.error('Error fetching pins:', JSON.stringify(error, null, 2)); // ← このように書き換える
-    return []; 
+    // エラーオブジェクトを詳しくコンソールに出力すると、デバッグがしやすくなります
+    console.error('Error fetching pins:', JSON.stringify(error, null, 2));
+    return [];
+  }
+
+  if (!data) {
+    return [];
   }
   
-  if (!rawData) {
-    return []; // データがnullの場合も空配列を返す
-  }
-
-  // SupabaseからのデータをPinData型に合うように整形する
-  const formattedData: PinData[] = rawData.map(pin => {
-    // Supabaseから返されるcitiesは配列なので、その最初の要素を取得します。
-    // (pinsテーブルとcitiesテーブルは1対1の関係と想定)
-    const cityInfo = Array.isArray(pin.cities) && pin.cities.length > 0
-      ? pin.cities[0]
-      : null;
+  // Supabaseからのデータ構造を、PinData型に合うように整形する
+  const formattedData = data.map(pin => {
+    const cityInfo = Array.isArray(pin.cities) && pin.cities.length > 0 
+      ? pin.cities[0] 
+      : { prefecture: '不明', city: '不明' }; 
 
     return {
-      id: pin.id,
-      number: pin.number,
-      address: pin.address,
-      place_name: pin.place_name,
-      lat: pin.lat,
-      long: pin.long,
-      status: pin.status,
-      note: pin.note,
-      cities: cityInfo, // 整形したオブジェクトをセット
+      ...pin,
+      cities: cityInfo,
     };
   });
 
-  return formattedData;
+  return formattedData as PinData[];
 }
 
 /**
@@ -79,13 +69,28 @@ export async function updatePin(id: number, status: number, note: string) {
   const { data, error } = await supabase
     .from('pins')
     .update({ status: status, note: note })
-    .eq('id', id) // idが一致する行を更新
-    .select()
-    .single(); // 更新した1件だけを返す
+    .eq('id', id)
+    .select(`*, cities(prefecture, city)`) // 更新後もcitiesの情報を取得する
+    .single();
 
   if (error) {
     console.error('Error updating pin:', error);
     throw error;
   }
-  return data;
+
+  if (!data) {
+    throw new Error("Pin not found after update.");
+  }
+  
+  // updatePinでも同様にデータ構造を整形する
+  const cityInfo = Array.isArray(data.cities) && data.cities.length > 0
+    ? data.cities[0]
+    : { prefecture: '不明', city: '不明' };
+
+  const formattedData = {
+    ...data,
+    cities: cityInfo,
+  };
+  
+  return formattedData as PinData;
 }
