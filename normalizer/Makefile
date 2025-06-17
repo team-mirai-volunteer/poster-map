@@ -1,4 +1,4 @@
-.PHONY: help build run deploy setup-secrets clean
+.PHONY: help build run deploy clean
 
 # Load .env file if it exists
 -include .env
@@ -7,15 +7,14 @@ export
 PROJECT_ID ?= $(shell gcloud config get-value project)
 SERVICE_NAME = csv-normalizer
 REGION = asia-northeast1
-IMAGE_NAME = gcr.io/$(PROJECT_ID)/$(SERVICE_NAME)
+IMAGE_NAME = $(REGION)-docker.pkg.dev/$(PROJECT_ID)/normalizer/$(SERVICE_NAME)
 
 help:
 	@echo "利用可能なコマンド:"
 	@echo "  build        - Dockerイメージをビルド"
 	@echo "  build-linux  - Linux用のDockerイメージをビルド (macOSから)"
-	@echo "  run-local    - ローカルでコンテナを実行"
+	@echo "  run          - ローカルでコンテナを実行"
 	@echo "  deploy       - Google Cloud Runにデプロイ"
-	@echo "  setup-secrets - Secret Managerの設定"
 	@echo "  clean        - ローカルイメージを削除"
 
 build:
