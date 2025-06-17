@@ -25,7 +25,8 @@ infra/
    gcloud auth application-default login
    
    # Set your project
-   gcloud config set project YOUR-PROJECT-ID
+   gcloud config set project PROJECT-ID
+   gcloud auth application-default set-quota-project PROJECT-ID
    ```
 
 2. **Initialize Terraform:**

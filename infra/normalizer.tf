@@ -9,8 +9,6 @@ resource "google_service_account" "normalizer" {
   description  = "Service account for CSV normalizer Cloud Run service"
 }
 
-# Note: API key is auto-generated in normalizer-api-key.tf
-# The secret is created there with the auto-generated key
 
 # Artifact Registry repository for Docker images
 resource "google_artifact_registry_repository" "normalizer" {

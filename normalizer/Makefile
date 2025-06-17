@@ -50,7 +50,7 @@ deploy: build-linux push
 		--cpu 1 \
 		--max-instances 10 \
 		--service-account=$(SA_NORMALIZER) \
-		--update-secrets GOOGLE_MAPS_API_KEY=google-maps-api-key-auto:latest
+		--update-secrets GOOGLE_MAPS_API_KEY=google-maps-api-key:latest
 
 setup-secrets:
 	@echo "Google Secret Managerにシークレットを作成中..."
