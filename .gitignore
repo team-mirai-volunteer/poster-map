@@ -1,14 +1,35 @@
-.DS_Store
+# 環境変数ファイル
+.env
+.env.local
+.env.production
+.env.staging
 .env*
+
+# Google Service Account キー
+*.json
+service-account-*.json
+
+# OS generated files
+.DS_Store
 
 # Local Netlify folder
 .netlify
 
+# Log files
 public/data/log/*
 
+# Node.js
 node_modules
 dist
 .next
 
+# Generated files
 /generated/prisma
+
+# Deployment
 .vercel
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
