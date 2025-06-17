@@ -169,7 +169,37 @@ def main():
                 
                 result_df = pd.DataFrame(results[1:], columns=results[0])
                 st.subheader("処理結果")
-                st.dataframe(result_df, use_container_width=True)
+                
+                rows_per_page = 10
+                max_display_rows = 30
+                total_rows = len(result_df)
+                
+                if total_rows > 5:
+                    display_rows = min(total_rows, max_display_rows)
+                    max_pages = (display_rows - 1) // rows_per_page + 1
+                    
+                    col1, col2, col3 = st.columns([1, 2, 1])
+                    with col2:
+                        page = st.selectbox(
+                            f"ページ選択 (全{max_pages}ページ、{display_rows}行中{min(display_rows, total_rows)}行を表示)",
+                            options=range(1, max_pages + 1),
+                            format_func=lambda x: f"ページ {x}",
+                            key="result_page_selector"
+                        )
+                    
+                    start_idx = (page - 1) * rows_per_page
+                    end_idx = min(start_idx + rows_per_page, display_rows)
+                    
+                    st.dataframe(
+                        result_df.iloc[start_idx:end_idx], 
+                        use_container_width=True,
+                        height=400
+                    )
+                    
+                    if total_rows > max_display_rows:
+                        st.info(f"💡 大量のデータのため、最初の{max_display_rows}行のみ表示しています。完全なデータはダウンロードファイルで確認できます。")
+                else:
+                    st.dataframe(result_df, use_container_width=True)
                 
                 csv_buffer = io.StringIO()
                 csv_writer = csv.writer(csv_buffer)
