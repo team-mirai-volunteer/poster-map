@@ -8,6 +8,7 @@ IMAGE_NAME = gcr.io/$(PROJECT_ID)/$(SERVICE_NAME)
 help:
 	@echo "利用可能なコマンド:"
 	@echo "  build        - Dockerイメージをビルド"
+	@echo "  build-linux  - Linux用のDockerイメージをビルド (macOSから)"
 	@echo "  run-local    - ローカルでコンテナを実行"
 	@echo "  deploy       - Google Cloud Runにデプロイ"
 	@echo "  setup-secrets - Secret Managerの設定"
@@ -16,6 +17,11 @@ help:
 build:
 	@echo "Dockerイメージをビルド中..."
 	docker build -t $(SERVICE_NAME) .
+	docker tag $(SERVICE_NAME) $(IMAGE_NAME)
+
+build-linux:
+	@echo "Linux用のDockerイメージをビルド中 (macOSから)..."
+	docker buildx build --platform linux/amd64 -t $(SERVICE_NAME) --load .
 	docker tag $(SERVICE_NAME) $(IMAGE_NAME)
 
 run-local:
@@ -28,7 +34,7 @@ push:
 	@echo "イメージをGoogle Container Registryにプッシュ中..."
 	docker push $(IMAGE_NAME)
 
-deploy: build push
+deploy: build-linux push
 	@echo "Google Cloud Runにデプロイ中..."
 	gcloud run deploy $(SERVICE_NAME) \
 		--image $(IMAGE_NAME) \
