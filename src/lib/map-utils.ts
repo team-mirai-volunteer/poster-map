@@ -6,7 +6,8 @@ export function getStatusText(status: number): string {
     3: "予約",
     4: "要確認",
     5: "異常対応中",
-    6: "削除"
+    6: "削除",
+    7: "貼り付け確認完了",//追加
   };
   return statusDict[status] || "不明";
 }
@@ -27,6 +28,9 @@ export function getStatusColor(status: number): string {
       return '#9106E9';
     case 6:
       return '#FFD600';
+    case 7://追加
+      return '#FFD700';
+
     default:
       return '#666666';
   }

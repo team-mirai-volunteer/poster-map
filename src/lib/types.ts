@@ -1,27 +1,17 @@
-export interface AreaData {
-  area_name: string;
-}
+// src/lib/types.ts (修正版)
 
 export interface PinData {
-  lat: number;
-  long: number;
-  name: string;
-  status: number;
-  area_id: number;
-}
-
-export interface VoteVenue {
-  lat: number;
-  long: number;
-  name: string;
+  id: number;
+  number: string;
   address: string;
-  period: string;
-}
-
-export interface ProgressData {
-  [key: string]: number;
-}
-
-export interface AreaList {
-  [key: string]: AreaData;
+  place_name: string;
+  lat: number | null;
+  long: number | null;
+  status: number;
+  note: string | null;
+  // citiesテーブルからJOINしたデータ用の型を追加
+  cities: {
+    prefecture: string;
+    city: string;
+  } | null;
 }
