@@ -9,12 +9,9 @@ resource "google_service_account" "normalizer" {
   description  = "Service account for CSV normalizer Cloud Run service"
 }
 
-# Grant the service account permission to use Google Maps API
-resource "google_project_iam_member" "normalizer_maps_user" {
-  project = var.project_id
-  role    = "roles/serviceusage.serviceUsageConsumer"
-  member  = "serviceAccount:${google_service_account.normalizer.email}"
-}
+# Grant the service account permission to invoke Google Maps services
+# Note: The Maps API doesn't have specific IAM roles - it uses project-level API enablement
+# The service account just needs to be from the project where Maps API is enabled
 
 # Artifact Registry repository for Docker images
 resource "google_artifact_registry_repository" "normalizer" {
