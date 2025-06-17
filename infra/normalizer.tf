@@ -19,4 +19,6 @@ resource "google_artifact_registry_repository" "normalizer" {
   repository_id = "normalizer"
   description   = "Docker repository for CSV normalizer service"
   format        = "DOCKER"
+  
+  depends_on = [google_project_service.apis]
 }
