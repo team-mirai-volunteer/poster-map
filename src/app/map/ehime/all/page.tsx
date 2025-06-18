@@ -18,13 +18,24 @@ interface MapConfig {
 }
 
 const mapConfig: MapConfig = {
-  '23-east': { lat: 35.7266074, long: 139.8292152, zoom: 14 },
-  '23-west': { lat: 35.6861171, long: 139.6490942, zoom: 13 },
-  '23-city': { lat: 35.6916896, long: 139.7254559, zoom: 14 },
-  'tama-north': { lat: 35.731028, long: 139.481822, zoom: 13 },
-  'tama-south': { lat: 35.6229399, long: 139.4584664, zoom: 13 },
-  'tama-west': { lat: 35.7097579, long: 139.2904051, zoom: 12 },
-  'island': { lat: 34.5291416, long: 139.2819004, zoom: 11 },
+  'matsuyama': { lat: 35.7266074, long: 139.8292152, zoom: 14 },
+  'imabari': { lat: 35.7266074, long: 139.8292152, zoom: 14 },
+  'uwajima': { lat: 35.7266074, long: 139.8292152, zoom: 14 },
+  'yawatahama': { lat: 35.7266074, long: 139.8292152, zoom: 14 },
+  'niihama': { lat: 35.7266074, long: 139.8292152, zoom: 14 },
+  'saijo': { lat: 35.7266074, long: 139.8292152, zoom: 14 },
+  'ozu': { lat: 35.7266074, long: 139.8292152, zoom: 14 },
+  'iyo': { lat: 35.7266074, long: 139.8292152, zoom: 14 },
+  'shikokuchuo': { lat: 35.7266074, long: 139.8292152, zoom: 14 },
+  'seiyo': { lat: 35.7266074, long: 139.8292152, zoom: 14 },
+  'toon': { lat: 35.7266074, long: 139.8292152, zoom: 14 },
+  'kamijima': { lat: 35.7266074, long: 139.8292152, zoom: 14 },
+  'kumakogen': { lat: 35.7266074, long: 139.8292152, zoom: 14 },
+  'masaki': { lat: 35.7266074, long: 139.8292152, zoom: 14 },
+  'tobe': { lat: 35.7266074, long: 139.8292152, zoom: 14 },
+  'uchiko': { lat: 35.7266074, long: 139.8292152, zoom: 14 },
+  'ikata': { lat: 35.7266074, long: 139.8292152, zoom: 14 },
+  'ainan': { lat: 35.7266074, long: 139.8292152, zoom: 14 },
 };
 
 function getPinNote(note: string | null): string {
