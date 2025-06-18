@@ -51,7 +51,7 @@ export default function AichiPage() {
                 <Link href="/map/aichi/all?block=kariya" className="list-group-item list-group-item-action">
                     刈谷市
                 </Link>
-                <Link href="/map/aichi/all?block=oyota" className="list-group-item list-group-item-action">
+                <Link href="/map/aichi/all?block=toyota" className="list-group-item list-group-item-action">
                     豊田市
                 </Link>
                 <Link href="/map/aichi/all?block=anjo" className="list-group-item list-group-item-action">

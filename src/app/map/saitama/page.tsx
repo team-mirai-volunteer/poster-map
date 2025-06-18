@@ -1,6 +1,6 @@
 import Link from 'next/link'
 
-export default function saitamaPage() {
+export default function SaitamaPage() {
     return (
     <div className="container-sm my-5">
         <div className="col-lg-12 px-0">

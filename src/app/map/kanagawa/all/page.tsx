@@ -7,7 +7,7 @@ import { getBoardPins, getProgress, getProgressCountdown, getVoteVenuePins, getA
 import { getStatusText, getStatusColor, createProgressBox, createProgressBoxCountdown, createBaseLayers, createGrayIcon } from '@/lib/map-utils';
 import { PinData, VoteVenue, AreaList } from '@/lib/types';
 
-const Map = dynamic(() => import('@/components/Map'), { ssr: false });
+const LeafletMap = dynamic(() => import('@/components/Map'), { ssr: false });
 
 interface MapConfig {
   [key: string]: {
@@ -79,7 +79,7 @@ async function loadBoardPins(pins: PinData[], layer: any, areaList: AreaList, L:
   });
 }
 
-async function loadVoteVenuePins(layer: any, L: any, area:string | null = "") {
+async function loadVoteVenuePins(layer: any, L: any, area:string | null = null) {
   const pins = await getVoteVenuePins(area);
   const grayIcon = createGrayIcon(L);
   pins.forEach(pin => {
@@ -160,7 +160,8 @@ function MapPageContent() {
         L.circle(e.latlng, radius).addTo(mapInstance);
       });
 
-      mapInstance.on('locationerror', setInitialView);
+      // mapInstance.on('locationerror', setInitialView);
+      setInitialView();
       mapInstance.locate({ setView: false, maxZoom: 14 });
 
       try {
@@ -186,7 +187,7 @@ function MapPageContent() {
         createProgressBoxCountdown(L, parseInt(progressCountdown.total.toString()), 'topleft').addTo(mapInstance);
 
         // Load vote venue pins
-        // await loadVoteVenuePins(overlays['期日前投票所'], L);
+        await loadVoteVenuePins(overlays['期日前投票所'], L, area);
 
       } catch (error) {
         console.error('Error loading map data:', error);
@@ -241,7 +242,7 @@ function MapPageContent() {
           }
         }
       `}</style>
-      <Map onMapReady={setMapInstance} />
+      <LeafletMap onMapReady={setMapInstance} />
     </>
   );
 }

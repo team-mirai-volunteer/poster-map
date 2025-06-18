@@ -7,7 +7,7 @@ import { getBoardPins, getProgress, getProgressCountdown, getVoteVenuePins, getA
 import { getStatusText, getStatusColor, createProgressBox, createProgressBoxCountdown, createBaseLayers, createGrayIcon } from '@/lib/map-utils';
 import { PinData, VoteVenue, AreaList } from '@/lib/types';
 
-const Map = dynamic(() => import('@/components/Map'), { ssr: false });
+const LeafletMap = dynamic(() => import('@/components/Map'), { ssr: false });
 
 interface MapConfig {
   [key: string]: {
@@ -18,13 +18,13 @@ interface MapConfig {
 }
 
 const mapConfig: MapConfig = {
-  '23-east': { lat: 35.7266074, long: 139.8292152, zoom: 14 },
-  '23-west': { lat: 35.6861171, long: 139.6490942, zoom: 13 },
-  '23-city': { lat: 35.6916896, long: 139.7254559, zoom: 14 },
-  'tama-north': { lat: 35.731028, long: 139.481822, zoom: 13 },
-  'tama-south': { lat: 35.6229399, long: 139.4584664, zoom: 13 },
-  'tama-west': { lat: 35.7097579, long: 139.2904051, zoom: 12 },
-  'island': { lat: 34.5291416, long: 139.2819004, zoom: 11 },
+  '23-east': { lat: 35.7266074, long: 139.8292152, zoom: 12 },
+  '23-west': { lat: 35.6861171, long: 139.6490942, zoom: 11 },
+  '23-city': { lat: 35.6916896, long: 139.7254559, zoom: 12 },
+  'tama-north': { lat: 35.731028, long: 139.481822, zoom: 12 },
+  'tama-south': { lat: 35.6229399, long: 139.4584664, zoom: 11 },
+  'tama-west': { lat: 35.7097579, long: 139.2904051, zoom: 11 },
+  'island': { lat: 34.56389641308273, long: 139.40694863309272, zoom: 9 },
 };
 
 function getPinNote(note: string | null): string {
@@ -53,7 +53,7 @@ async function loadBoardPins(pins: PinData[], layer: any, areaList: AreaList, L:
   });
 }
 
-async function loadVoteVenuePins(layer: any, L: any, area:string | null = "") {
+async function loadVoteVenuePins(layer: any, L: any, area:string | null = null) {
   const pins = await getVoteVenuePins(area);
   const grayIcon = createGrayIcon(L);
   pins.forEach(pin => {
@@ -120,7 +120,7 @@ function MapPageContent() {
           zoom = mapConfig[block].zoom;
         } else {
           latlong = [35.6988862, 139.4649636];
-          zoom = 11;
+          zoom = 10;
         }
         
         mapInstance.setView(latlong, zoom);
@@ -134,7 +134,8 @@ function MapPageContent() {
         L.circle(e.latlng, radius).addTo(mapInstance);
       });
 
-      mapInstance.on('locationerror', setInitialView);
+      // mapInstance.on('locationerror', setInitialView);
+      setInitialView();
       mapInstance.locate({ setView: false, maxZoom: 14 });
 
       try {
@@ -215,7 +216,7 @@ function MapPageContent() {
           }
         }
       `}</style>
-      <Map onMapReady={setMapInstance} />
+      <LeafletMap onMapReady={setMapInstance} />
     </>
   );
 }
