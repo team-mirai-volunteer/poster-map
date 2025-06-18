@@ -6,42 +6,50 @@ export default function Home() {
       <div className="col-lg-12 px-0">
         <h3 className="mb-4">チームみらいマップ 都道府県</h3>
         <div className="list-group mb-4">
-          <Link href="/map/hokkaido" className="list-group-item list-group-item-action">
+          <Link href="/hokkaido" className="list-group-item list-group-item-action">
             北海道
           </Link>
-          <Link href="/map/miyagi" className="list-group-item list-group-item-action">
+          <Link href="/miyagi" className="list-group-item list-group-item-action">
             宮城県
           </Link>
-          <Link href="/map/saitama" className="list-group-item list-group-item-action">
+          <Link href="/saitama" className="list-group-item list-group-item-action">
             埼玉県
           </Link>
-          <Link href="/map/chiba" className="list-group-item list-group-item-action">
+          <Link href="/chiba" className="list-group-item list-group-item-action">
             千葉県
           </Link>
-          <Link href="/map/tokyo" className="list-group-item list-group-item-action">
+          <Link href="/tokyo" className="list-group-item list-group-item-action">
             東京都
           </Link>
-          <Link href="/map/kanagawa" className="list-group-item list-group-item-action">
+          <Link href="/kanagawa" className="list-group-item list-group-item-action">
             神奈川県
           </Link>
-          <Link href="/map/nagano" className="list-group-item list-group-item-action">
+          <Link href="/nagano" className="list-group-item list-group-item-action">
             長野県
           </Link>
-          <Link href="/map/aichi" className="list-group-item list-group-item-action">
+          <Link href="/aichi" className="list-group-item list-group-item-action">
             愛知県
           </Link>
-          <Link href="/map/osaka" className="list-group-item list-group-item-action">
+          <Link href="/osaka" className="list-group-item list-group-item-action">
             大阪府
           </Link>
-          <Link href="/map/hyogo" className="list-group-item list-group-item-action">
+          <Link href="/hyogo" className="list-group-item list-group-item-action">
             兵庫県
           </Link>
-          <Link href="/map/ehime" className="list-group-item list-group-item-action">
+          <Link href="/ehime" className="list-group-item list-group-item-action">
             愛媛県
           </Link>
-          <Link href="/map/fukuoka" className="list-group-item list-group-item-action">
+          <Link href="/fukuoka" className="list-group-item list-group-item-action">
             福岡県
           </Link>
+        </div>
+        <div className="mt-4">
+          <h5>参考版</h5>
+          <div className="list-group">
+            <Link href="/tokyo-2024" className="list-group-item list-group-item-action list-group-item-secondary">
+              東京都（2024年参考版）
+            </Link>
+          </div>
         </div>
         <div>
           <a 
