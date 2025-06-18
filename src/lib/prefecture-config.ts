@@ -122,6 +122,23 @@ export const prefectureConfigs: Record<string, PrefectureConfig> = {
     defaultLong: 130.4183,
     defaultZoom: 9,
   },
+  'tokyo-2024': {
+    id: 'tokyo-2024',
+    nameJa: '東京都 (2024アーカイブ)',
+    nameEn: 'Tokyo 2024 Archive',
+    defaultLat: 35.6762,
+    defaultLong: 139.6503,
+    defaultZoom: 10,
+    blocks: [
+      { id: '23-city', name: '23区都心部', lat: 35.6903995, long: 139.7531908, zoom: 13 },
+      { id: '23-east', name: '23区東部', lat: 35.7266074, long: 139.8292152, zoom: 14 },
+      { id: '23-west', name: '23区南部・西部', lat: 35.6861171, long: 139.6490942, zoom: 13 },
+      { id: 'tama-north', name: '多摩北部', lat: 35.7371639, long: 139.4772992, zoom: 13 },
+      { id: 'tama-south', name: '多摩南部', lat: 35.6429925, long: 139.5348597, zoom: 13 },
+      { id: 'tama-west', name: '多摩西部', lat: 35.7089136, long: 139.2893988, zoom: 12 },
+      { id: 'island', name: '島しょ部', lat: 34.0669169, long: 139.3507383, zoom: 13 },
+    ],
+  },
 };
 
 export const getPrefectureConfig = (prefectureId: string): PrefectureConfig | undefined => {
