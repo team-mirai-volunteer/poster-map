@@ -113,7 +113,7 @@ async function loadBoardPins(pins: PinData[], layer: any, areaList: AreaList, L:
       fillOpacity: 0.9,
     }).addTo(layer);
     
-    const areaName = areaList[pin.area_id]?.area_name || '不明';
+    const areaName = areaList[String(pin.area_id)]?.area_name || '不明';
     marker.bindPopup(`
       <b>${areaName} ${pin.name}</b><br>
       ステータス: ${getStatusText(pin.status)}<br>

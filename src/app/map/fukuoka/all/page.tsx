@@ -63,7 +63,7 @@ const mapConfig: MapConfig = {
   'keisen': { lat: 33.6333, long: 130.6500, zoom: 12 },
   'chikuzen': { lat: 33.4472, long: 130.6389, zoom: 12 },
   'toho': { lat: 33.4500, long: 130.8500, zoom: 12 },
-  'otachi arai': { lat: 33.3500, long: 130.5333, zoom: 12 }, // 大刀洗町
+  'otachiarai': { lat: 33.3500, long: 130.5333, zoom: 12 }, // 大刀洗町
   'oki': { lat: 33.2428, long: 130.4072, zoom: 12 }, // 大木町
   'hirokawa': { lat: 33.2500, long: 130.5500, zoom: 12 }, // 広川町
   'kawara': { lat: 33.6333, long: 130.7500, zoom: 12 },
@@ -96,7 +96,7 @@ async function loadBoardPins(pins: PinData[], layer: any, areaList: AreaList, L:
       fillOpacity: 0.9,
     }).addTo(layer);
     
-    const areaName = areaList[pin.area_id]?.area_name || '不明';
+    const areaName = areaList[String(pin.area_id)]?.area_name || '不明';
     marker.bindPopup(`
       <b>${areaName} ${pin.name}</b><br>
       ステータス: ${getStatusText(pin.status)}<br>
