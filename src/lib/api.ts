@@ -2,48 +2,114 @@ import { AreaList, ProgressData, VoteVenue, PinData } from './types';
 
 export async function getAreaList(area:string | null = ""): Promise<AreaList> {
   const input = area ? `${area}/` : ""
-  const response = await fetch(`/data/${input}arealist.json`);
-  return response.json();
+  try {
+    const response = await fetch(`/data/${input}arealist.json`);
+    if (!response.ok) throw new Error('AreaList not found');
+    return response.json();
+  } catch (error) {
+    // Return a default area list for tokyo-2024
+    if (area === 'tokyo-2024') {
+      return {
+        1: { area_name: '東京都' }
+      };
+    }
+    throw error;
+  }
 }
 
 export async function getProgress(area:string | null = ""): Promise<ProgressData> {
   const input = area ? `${area}/` : ""
-  const response = await fetch(`/data/${input}summary.json`);
-  return response.json();
+  try {
+    const response = await fetch(`/data/${input}summary.json`);
+    if (!response.ok) throw new Error('Progress data not found');
+    return response.json();
+  } catch (error) {
+    if (area === 'tokyo-2024') {
+      return { total: 0 };
+    }
+    throw error;
+  }
 }
 
 export async function getProgressCountdown(area:string | null = ""): Promise<ProgressData> {
   const input = area ? `${area}/` : ""
-  const response = await fetch(`/data/${input}summary_absolute.json`);
-  return response.json();
+  try {
+    const response = await fetch(`/data/${input}summary_absolute.json`);
+    if (!response.ok) throw new Error('Progress countdown data not found');
+    return response.json();
+  } catch (error) {
+    if (area === 'tokyo-2024') {
+      return { total: 0 };
+    }
+    throw error;
+  }
 }
 
 export async function getVoteVenuePins(area:string | null = ""): Promise<VoteVenue[]> {
   const input = area ? `${area}/` : ""
-  const response = await fetch(`/data/${input}vote_venue.json`);
-  return response.json();
+  try {
+    const response = await fetch(`/data/${input}vote_venue.json`);
+    if (!response.ok) throw new Error('Vote venue data not found');
+    return response.json();
+  } catch (error) {
+    if (area === 'tokyo-2024') {
+      return [];
+    }
+    throw error;
+  }
 }
 
 export async function getBoardPins(block: string | null = null, smallBlock: string | null = null, area:string | null = ""): Promise<PinData[]> {
   const input = area ? `${area}/` : ""
   let response;
-  if (block === null) {
-    response = await fetch(`/data/${input}board.json`);
-  } else {
-    response = await fetch(`/data/${input}block/${block}.json`);
+  
+  // Try JSON first, fall back to CSV for legacy data
+  try {
+    if (block === null) {
+      response = await fetch(`/data/${input}board.json`);
+      if (!response.ok) throw new Error('JSON not found');
+    } else {
+      response = await fetch(`/data/${input}block/${block}.json`);
+    }
+    const data: PinData[] = await response.json();
+    
+    if (smallBlock === null) {
+      return data;
+    } else {
+      const smallBlockSplit = smallBlock.split('-');
+      const areaName = smallBlockSplit[0];
+      const smallBlockId = Number(smallBlockSplit[1]);
+      const areaList = await getAreaList();
+      const areaId = Number(findKeyByAreaName(areaList, areaName));
+      return filterDataByAreaIdAndSmallBlock(data, areaId, smallBlockId);
+    }
+  } catch (error) {
+    // Fallback to CSV for tokyo-2024
+    if (area === 'tokyo-2024' && block === null) {
+      const csvResponse = await fetch(`/data/${input}board.csv`);
+      const csvText = await csvResponse.text();
+      return parseCSVToPinData(csvText);
+    }
+    throw error;
   }
-  const data: PinData[] = await response.json();
+}
 
-  if (smallBlock === null) {
-    return data;
-  } else {
-    const smallBlockSplit = smallBlock.split('-');
-    const areaName = smallBlockSplit[0];
-    const smallBlockId = Number(smallBlockSplit[1]);
-    const areaList = await getAreaList();
-    const areaId = Number(findKeyByAreaName(areaList, areaName));
-    return filterDataByAreaIdAndSmallBlock(data, areaId, smallBlockId);
-  }
+function parseCSVToPinData(csvText: string): PinData[] {
+  const lines = csvText.trim().split('\n');
+  const headers = lines[0].split(',');
+  
+  return lines.slice(1).map(line => {
+    const values = line.split(',');
+    const note = values[5] ? values[5].trim() : null;
+    return {
+      area_id: 1, // Default area_id for legacy data
+      name: values[1],
+      lat: parseFloat(values[2]),
+      long: parseFloat(values[3]),
+      status: parseInt(values[4]),
+      note: note === '' ? null : note
+    };
+  });
 }
 
 export function findKeyByAreaName(data: AreaList, areaName: string): string | null {

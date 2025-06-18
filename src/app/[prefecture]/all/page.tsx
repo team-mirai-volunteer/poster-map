@@ -1,4 +1,5 @@
 import { getAllPrefectures } from '@/lib/prefecture-config';
+import { loadPrefectureData } from '@/lib/server-data';
 import MapClient from './MapClient';
 
 export async function generateStaticParams() {
@@ -16,5 +17,7 @@ interface PageProps {
 
 export default async function MapPage({ params }: PageProps) {
   const { prefecture } = await params;
-  return <MapClient prefecture={prefecture} />;
+  const data = await loadPrefectureData(prefecture);
+  
+  return <MapClient prefecture={prefecture} prefectureData={data} />;
 }

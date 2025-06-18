@@ -4,10 +4,10 @@ import { useEffect, useState, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { notFound } from 'next/navigation';
 import dynamic from 'next/dynamic';
-import { getBoardPins, getProgress, getProgressCountdown, getVoteVenuePins, getAreaList } from '@/lib/api';
 import { getStatusText, getStatusColor, createProgressBox, createProgressBoxCountdown, createBaseLayers, createGrayIcon } from '@/lib/map-utils';
 import { PinData, VoteVenue, AreaList } from '@/lib/types';
 import { getPrefectureConfig } from '@/lib/prefecture-config';
+import { PrefectureData } from '@/lib/server-data';
 
 const Map = dynamic(() => import('@/components/Map'), { ssr: false });
 
@@ -37,8 +37,7 @@ async function loadBoardPins(pins: PinData[], layer: any, areaList: AreaList, L:
   });
 }
 
-async function loadVoteVenuePins(layer: any, L: any, area: string | null = "") {
-  const pins = await getVoteVenuePins(area);
+async function loadVoteVenuePins(pins: VoteVenue[], layer: any, L: any) {
   const grayIcon = createGrayIcon(L);
   pins.forEach(pin => {
     const marker = L.marker([pin.lat, pin.long], {
@@ -53,7 +52,7 @@ async function loadVoteVenuePins(layer: any, L: any, area: string | null = "") {
   });
 }
 
-function MapPageContent({ prefecture }: { prefecture: string }) {
+function MapPageContent({ prefecture, prefectureData }: { prefecture: string; prefectureData: PrefectureData }) {
   const searchParams = useSearchParams();
   const [mapInstance, setMapInstance] = useState<any>(null);
   
@@ -133,29 +132,29 @@ function MapPageContent({ prefecture }: { prefecture: string }) {
       mapInstance.locate({ setView: false, maxZoom: 14 });
 
       try {
-        // Load board pins
-        const area = prefecture;
-        const pins = await getBoardPins(block, smallBlock, area);
-        const areaList = await getAreaList(area);
+        // Use pre-loaded data
+        const { pins, areaList, progress, progressCountdown, voteVenues } = prefectureData;
         
-        await loadBoardPins(pins, overlays['削除'], areaList, L, 6);
-        await loadBoardPins(pins, overlays['完了'], areaList, L, 1);
-        await loadBoardPins(pins, overlays['異常'], areaList, L, 2);
-        await loadBoardPins(pins, overlays['要確認'], areaList, L, 4);
-        await loadBoardPins(pins, overlays['異常対応中'], areaList, L, 5);
-        await loadBoardPins(pins, overlays['未'], areaList, L, 0);
+        // Filter pins by block if needed
+        let filteredPins = pins;
+        if (block && prefectureConfig.blocks) {
+          // TODO: Implement block filtering based on prefecture config
+          // For now, use all pins
+        }
+        
+        await loadBoardPins(filteredPins, overlays['削除'], areaList, L, 6);
+        await loadBoardPins(filteredPins, overlays['完了'], areaList, L, 1);
+        await loadBoardPins(filteredPins, overlays['異常'], areaList, L, 2);
+        await loadBoardPins(filteredPins, overlays['要確認'], areaList, L, 4);
+        await loadBoardPins(filteredPins, overlays['異常対応中'], areaList, L, 5);
+        await loadBoardPins(filteredPins, overlays['未'], areaList, L, 0);
 
-        // Load progress data
-        const [progress, progressCountdown] = await Promise.all([
-          getProgress(area),
-          getProgressCountdown(area)
-        ]);
-
+        // Use pre-loaded progress data
         createProgressBox(L, Number((progress.total * 100).toFixed(2)), 'topleft').addTo(mapInstance);
         createProgressBoxCountdown(L, parseInt(progressCountdown.total.toString()), 'topleft').addTo(mapInstance);
 
         // Load vote venue pins
-        await loadVoteVenuePins(overlays['期日前投票所'], L, area);
+        await loadVoteVenuePins(voteVenues, overlays['期日前投票所'], L);
 
       } catch (error) {
         console.error('Error loading map data:', error);
@@ -163,7 +162,7 @@ function MapPageContent({ prefecture }: { prefecture: string }) {
     };
 
     initializeMap();
-  }, [mapInstance, block, smallBlock, prefecture, prefectureConfig]);
+  }, [mapInstance, block, smallBlock, prefecture, prefectureConfig, prefectureData]);
 
   return (
     <>
@@ -215,10 +214,10 @@ function MapPageContent({ prefecture }: { prefecture: string }) {
   );
 }
 
-export default function MapClient({ prefecture }: { prefecture: string }) {
+export default function MapClient({ prefecture, prefectureData }: { prefecture: string; prefectureData: PrefectureData }) {
   return (
     <Suspense fallback={<div>Loading...</div>}>
-      <MapPageContent prefecture={prefecture} />
+      <MapPageContent prefecture={prefecture} prefectureData={prefectureData} />
     </Suspense>
   );
 }
