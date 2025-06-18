@@ -7,7 +7,7 @@ import { getBoardPins, getProgress, getProgressCountdown, getVoteVenuePins, getA
 import { getStatusText, getStatusColor, createProgressBox, createProgressBoxCountdown, createBaseLayers, createGrayIcon } from '@/lib/map-utils';
 import { PinData, VoteVenue, AreaList } from '@/lib/types';
 
-const Map = dynamic(() => import('@/components/Map'), { ssr: false });
+const LeafletMap = dynamic(() => import('@/components/Map'), { ssr: false });
 
 interface MapConfig {
   [key: string]: {
@@ -18,64 +18,64 @@ interface MapConfig {
 }
 
 const mapConfig: MapConfig = {
-  'chiba-chuo': { lat: 35.7266074, long: 139.8292152, zoom: 14 },
-  'chiba-hanamigawa': { lat: 35.7266074, long: 139.8292152, zoom: 14 },
-  'chiba-inage': { lat: 35.7266074, long: 139.8292152, zoom: 14 },
-  'chiba-wakaba': { lat: 35.7266074, long: 139.8292152, zoom: 14 },
-  'chiba-midori': { lat: 35.7266074, long: 139.8292152, zoom: 14 },
-  'chiba-mihama': { lat: 35.7266074, long: 139.8292152, zoom: 14 },
-  'choshi' : { lat: 35.7266074, long: 139.8292152, zoom: 14 },
-  'ichikawa' : { lat: 35.7266074, long: 139.8292152, zoom: 14 },
-  'funabashi' : { lat: 35.7266074, long: 139.8292152, zoom: 14 },
-  'tateyama' : { lat: 35.7266074, long: 139.8292152, zoom: 14 },
-  'kisarazu' : { lat: 35.7266074, long: 139.8292152, zoom: 14 },
-  'matsudo' : { lat: 35.7266074, long: 139.8292152, zoom: 14 },
-  'noda' : { lat: 35.7266074, long: 139.8292152, zoom: 14 },
-  'mobara' : { lat: 35.7266074, long: 139.8292152, zoom: 14 },
-  'narita' : { lat: 35.7266074, long: 139.8292152, zoom: 14 },
-  'sakura' : { lat: 35.7266074, long: 139.8292152, zoom: 14 },
-  'togane' : { lat: 35.7266074, long: 139.8292152, zoom: 14 },
-  'asahi' : { lat: 35.7266074, long: 139.8292152, zoom: 14 },
-  'narashino' : { lat: 35.7266074, long: 139.8292152, zoom: 14 },
-  'kashiwa' : { lat: 35.7266074, long: 139.8292152, zoom: 14 },
-  'katsuura' : { lat: 35.7266074, long: 139.8292152, zoom: 14 },
-  'ichihara' : { lat: 35.7266074, long: 139.8292152, zoom: 14 },
-  'nagareyama' : { lat: 35.7266074, long: 139.8292152, zoom: 14 },
-  'yachiyo' : { lat: 35.7266074, long: 139.8292152, zoom: 14 },
-  'abiko' : { lat: 35.7266074, long: 139.8292152, zoom: 14 },
-  'kamogawa' : { lat: 35.7266074, long: 139.8292152, zoom: 14 },
-  'kamagaya' : { lat: 35.7266074, long: 139.8292152, zoom: 14 },
-  'kimitsu' : { lat: 35.7266074, long: 139.8292152, zoom: 14 },
-  'futtsu' : { lat: 35.7266074, long: 139.8292152, zoom: 14 },
-  'urayasu' : { lat: 35.7266074, long: 139.8292152, zoom: 14 },
-  'yotsukaido' : { lat: 35.7266074, long: 139.8292152, zoom: 14 },
-  'sodegaura' : { lat: 35.7266074, long: 139.8292152, zoom: 14 },
-  'inzai' : { lat: 35.7266074, long: 139.8292152, zoom: 14 },
-  'shiroi' : { lat: 35.7266074, long: 139.8292152, zoom: 14 },
-  'tomisato' : { lat: 35.7266074, long: 139.8292152, zoom: 14 },
-  'minamiboso' : { lat: 35.7266074, long: 139.8292152, zoom: 14 },
-  'sosa' : { lat: 35.7266074, long: 139.8292152, zoom: 14 },
-  'katori' : { lat: 35.7266074, long: 139.8292152, zoom: 14 },
-  'sanmu' : { lat: 35.7266074, long: 139.8292152, zoom: 14 },
-  'isumi' : { lat: 35.7266074, long: 139.8292152, zoom: 14 },
-  'oamishirasato' : { lat: 35.7266074, long: 139.8292152, zoom: 14 },
-  'shisui' : { lat: 35.7266074, long: 139.8292152, zoom: 14 },
-  'sakae' : { lat: 35.7266074, long: 139.8292152, zoom: 14 },
-  'kozaki' : { lat: 35.7266074, long: 139.8292152, zoom: 14 },
-  'tako' : { lat: 35.7266074, long: 139.8292152, zoom: 14 },
-  'tojo' : { lat: 35.7266074, long: 139.8292152, zoom: 14 },
-  'kujukuri' : { lat: 35.7266074, long: 139.8292152, zoom: 14 },
-  'shibayama' : { lat: 35.7266074, long: 139.8292152, zoom: 14 },
-  'yokoshibahikari' : { lat: 35.7266074, long: 139.8292152, zoom: 14 },
-  'ichinomiya' : { lat: 35.7266074, long: 139.8292152, zoom: 14 },
-  'mutsuzawa' : { lat: 35.7266074, long: 139.8292152, zoom: 14 },
-  'chosei': { lat: 35.7266074, long: 139.8292152, zoom: 14 },
-  'shirako' : { lat: 35.7266074, long: 139.8292152, zoom: 14 },
-  'nagara' : { lat: 35.7266074, long: 139.8292152, zoom: 14 },
-  'chonan' : { lat: 35.7266074, long: 139.8292152, zoom: 14 },
-  'otaki' : { lat: 35.7266074, long: 139.8292152, zoom: 14 },
-  'onjuku' : { lat: 35.7266074, long: 139.8292152, zoom: 14 },
-  'kyonan' : { lat: 35.7266074, long: 139.8292152, zoom: 14 },
+  'chiba-chuo': { lat: 35.6049, long: 140.1235, zoom: 13 },
+  'chiba-hanamigawa': { lat: 35.6786, long: 140.0944, zoom: 13 },
+  'chiba-inage': { lat: 35.6496, long: 140.1128, zoom: 13 },
+  'chiba-wakaba': { lat: 35.6079, long: 140.2090, zoom: 13 },
+  'chiba-midori': { lat: 35.5484, long: 140.2358, zoom: 13 },
+  'chiba-mihama': { lat: 35.6341, long: 140.0627, zoom: 13 },
+  'choshi': { lat: 35.7336, long: 140.8256, zoom: 13 },
+  'ichikawa': { lat: 35.7202, long: 139.9079, zoom: 13 },
+  'funabashi': { lat: 35.6983, long: 139.9867, zoom: 13 },
+  'tateyama': { lat: 34.9928, long: 139.8661, zoom: 13 },
+  'kisarazu': { lat: 35.3789, long: 139.9328, zoom: 13 },
+  'matsudo': { lat: 35.7836, long: 139.9025, zoom: 13 },
+  'noda': { lat: 35.9458, long: 139.8583, zoom: 13 },
+  'mobara': { lat: 35.4208, long: 140.2975, zoom: 13 },
+  'narita': { lat: 35.7797, long: 140.3019, zoom: 13 },
+  'sakura': { lat: 35.7225, long: 140.2333, zoom: 13 },
+  'togane': { lat: 35.6267, long: 140.3608, zoom: 13 },
+  'asahi': { lat: 35.7192, long: 140.6483, zoom: 13 },
+  'narashino': { lat: 35.6839, long: 140.0211, zoom: 13 },
+  'kashiwa': { lat: 35.8625, long: 139.9719, zoom: 13 },
+  'katsuura': { lat: 35.1381, long: 140.3167, zoom: 13 },
+  'ichihara': { lat: 35.4972, long: 140.1194, zoom: 13 },
+  'nagareyama': { lat: 35.8600, long: 139.9000, zoom: 13 },
+  'yachiyo': { lat: 35.7483, long: 140.1069, zoom: 13 },
+  'abiko': { lat: 35.8828, long: 140.0389, zoom: 13 },
+  'kamogawa': { lat: 35.1097, long: 140.1028, zoom: 13 },
+  'kamagaya': { lat: 35.7878, long: 140.0092, zoom: 13 },
+  'kimitsu': { lat: 35.3333, long: 139.9333, zoom: 13 },
+  'futtsu': { lat: 35.3167, long: 139.8667, zoom: 13 },
+  'urayasu': { lat: 35.6567, long: 139.8856, zoom: 13 },
+  'yotsukaido': { lat: 35.6767, long: 140.1800, zoom: 13 },
+  'sodegaura': { lat: 35.4333, long: 139.9667, zoom: 13 },
+  'inzai': { lat: 35.8167, long: 140.1667, zoom: 13 },
+  'shiroi': { lat: 35.8167, long: 140.0667, zoom: 13 },
+  'tomisato': { lat: 35.7333, long: 140.3167, zoom: 13 },
+  'minamiboso': { lat: 35.0000, long: 139.9000, zoom: 13 },
+  'sosa': { lat: 35.7000, long: 140.5167, zoom: 13 },
+  'katori': { lat: 35.8833, long: 140.5000, zoom: 13 },
+  'sanmu': { lat: 35.6167, long: 140.4000, zoom: 13 },
+  'isumi': { lat: 35.2500, long: 140.3667, zoom: 13 },
+  'oamishirasato': { lat: 35.5333, long: 140.2833, zoom: 13 },
+  'shisui': { lat: 35.7333, long: 140.2333, zoom: 13 },
+  'sakae': { lat: 35.8500, long: 140.2167, zoom: 13 },
+  'kozaki': { lat: 35.8667, long: 140.3833, zoom: 13 }, // 神崎町 (Kanzaki-machi)
+  'tako': { lat: 35.7333, long: 140.4500, zoom: 13 },
+  'tojo': { lat: 35.8000, long: 140.6667, zoom: 13 }, // 東庄町 (Tojo-machi)
+  'kujukuri': { lat: 35.5333, long: 140.4167, zoom: 13 },
+  'shibayama': { lat: 35.7167, long: 140.3833, zoom: 13 },
+  'yokoshibahikari': { lat: 35.6500, long: 140.4667, zoom: 13 },
+  'ichinomiya': { lat: 35.3333, long: 140.3667, zoom: 13 },
+  'mutsuzawa': { lat: 35.3833, long: 140.3000, zoom: 13 },
+  'chosei': { lat: 35.3667, long: 140.3333, zoom: 13 },
+  'shirako': { lat: 35.4500, long: 140.3500, zoom: 13 },
+  'nagara': { lat: 35.4500, long: 140.2000, zoom: 13 },
+  'chonan': { lat: 35.3833, long: 140.2333, zoom: 13 },
+  'otaki': { lat: 35.2000, long: 140.1667, zoom: 13 },
+  'onjuku': { lat: 35.1500, long: 140.3500, zoom: 13 },
+  'kyonan': { lat: 35.1000, long: 139.8167, zoom: 13 },
 };
 
 function getPinNote(note: string | null): string {
@@ -104,7 +104,7 @@ async function loadBoardPins(pins: PinData[], layer: any, areaList: AreaList, L:
   });
 }
 
-async function loadVoteVenuePins(layer: any, L: any, area:string | null = "") {
+async function loadVoteVenuePins(layer: any, L: any, area:string | null = null) {
   const pins = await getVoteVenuePins(area);
   const grayIcon = createGrayIcon(L);
   pins.forEach(pin => {
@@ -185,33 +185,34 @@ function MapPageContent() {
         L.circle(e.latlng, radius).addTo(mapInstance);
       });
 
-      mapInstance.on('locationerror', setInitialView);
+      // mapInstance.on('locationerror', setInitialView);
+      setInitialView();
       mapInstance.locate({ setView: false, maxZoom: 14 });
 
       try {
         // Load board pins
-        // const area = "kanto/chiba"
-        // const pins = await getBoardPins(block, smallBlock, area);
-        // const areaList = await getAreaList(area);
+        const area = "chiba"
+        const pins = await getBoardPins(block, smallBlock, area);
+        const areaList = await getAreaList(area);
         
-        // await loadBoardPins(pins, overlays['削除'], areaList, L, 6);
-        // await loadBoardPins(pins, overlays['完了'], areaList, L, 1);
-        // await loadBoardPins(pins, overlays['異常'], areaList, L, 2);
-        // await loadBoardPins(pins, overlays['要確認'], areaList, L, 4);
-        // await loadBoardPins(pins, overlays['異常対応中'], areaList, L, 5);
-        // await loadBoardPins(pins, overlays['未'], areaList, L, 0);
+        await loadBoardPins(pins, overlays['削除'], areaList, L, 6);
+        await loadBoardPins(pins, overlays['完了'], areaList, L, 1);
+        await loadBoardPins(pins, overlays['異常'], areaList, L, 2);
+        await loadBoardPins(pins, overlays['要確認'], areaList, L, 4);
+        await loadBoardPins(pins, overlays['異常対応中'], areaList, L, 5);
+        await loadBoardPins(pins, overlays['未'], areaList, L, 0);
 
         // Load progress data
-        // const [progress, progressCountdown] = await Promise.all([
-        //   getProgress(area),
-        //   getProgressCountdown(area)
-        // ]);
+        const [progress, progressCountdown] = await Promise.all([
+          getProgress(area),
+          getProgressCountdown(area)
+        ]);
 
-        // createProgressBox(L, Number((progress.total * 100).toFixed(2)), 'topleft').addTo(mapInstance);
-        // createProgressBoxCountdown(L, parseInt(progressCountdown.total.toString()), 'topleft').addTo(mapInstance);
+        createProgressBox(L, Number((progress.total * 100).toFixed(2)), 'topleft').addTo(mapInstance);
+        createProgressBoxCountdown(L, parseInt(progressCountdown.total.toString()), 'topleft').addTo(mapInstance);
 
         // Load vote venue pins
-        // await loadVoteVenuePins(overlays['期日前投票所'], L);
+        // await loadVoteVenuePins(overlays['期日前投票所'], L, area);
 
       } catch (error) {
         console.error('Error loading map data:', error);
@@ -266,7 +267,7 @@ function MapPageContent() {
           }
         }
       `}</style>
-      <Map onMapReady={setMapInstance} />
+      <LeafletMap onMapReady={setMapInstance} />
     </>
   );
 }
