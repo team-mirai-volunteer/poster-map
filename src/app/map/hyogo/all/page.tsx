@@ -98,7 +98,7 @@ async function loadVoteVenuePins(layer: any, L: any, area:string | null = null) 
       <b>期日前投票所: ${pin.name}</b><br>
       ${pin.address}<br>
       期間: ${pin.period}<br>
-       <a href="https://www.google.com/maps/search/${pin.lat},+${pin.long}" target="_blank" rel="noopener noreferrer">(${pin.lat}, ${pin.long})</a>
+      <a href="https://www.google.com/maps/search/${pin.lat},+${pin.long}" target="_blank" rel="noopener noreferrer">(${pin.lat}, ${pin.long})</a>
     `);
   });
 }
@@ -203,6 +203,10 @@ function MapPageContent() {
     };
 
     initializeMap();
+
+    return () => {
+      mapInstance.off('locationfound');
+    };
   }, [mapInstance, block, smallBlock]);
 
   return (
