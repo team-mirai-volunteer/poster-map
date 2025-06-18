@@ -138,7 +138,7 @@ export default function FukuokaPage() {
                 <Link href="/map/fukuoka/all?block=onga" className="list-group-item list-group-item-action">
                     遠賀町
                 </Link>
-                <Link href="/map/fukuoka/all?block=otakemachi" className="list-group-item list-group-item-action">
+                <Link href="/map/fukuoka/all?block=kotakemachi" className="list-group-item list-group-item-action">
                     小竹町
                 </Link>
                 <Link href="/map/fukuoka/all?block=kurate" className="list-group-item list-group-item-action">
