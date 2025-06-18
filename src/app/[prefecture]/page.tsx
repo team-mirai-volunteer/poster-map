@@ -1,6 +1,13 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { getPrefectureConfig } from '@/lib/prefecture-config';
+import { getPrefectureConfig, getAllPrefectures } from '@/lib/prefecture-config';
+
+export async function generateStaticParams() {
+  const prefectures = getAllPrefectures();
+  return prefectures.map((prefecture) => ({
+    prefecture: prefecture.id,
+  }));
+}
 
 interface PageProps {
   params: Promise<{
