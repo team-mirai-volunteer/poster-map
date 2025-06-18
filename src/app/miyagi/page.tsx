@@ -1,4 +1,8 @@
-import Link from 'next/link'
+'use client';
+
+import { useEffect, useState } from 'react';
+import Link from 'next/link';
+import { getAreaList } from '@/lib/api';
 
 interface AreaData {
   block: string | null;
@@ -10,13 +14,31 @@ interface PrefectureData {
   areas: AreaData[];
 }
 
-async function getAreaList(prefecture: string): Promise<PrefectureData> {
-  const response = await fetch(`/data/${prefecture}/arealist.json`);
-  return response.json();
-}
+export default function MiyagiPage() {
+  const [areaData, setAreaData] = useState<PrefectureData | null>(null);
+  const [loading, setLoading] = useState(true);
 
-export default async function MiyagiPage() {
-  const areaData = await getAreaList('miyagi');
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        const data = await getAreaList('miyagi');
+        setAreaData(data as unknown as PrefectureData);
+      } catch (error) {
+        console.error('Error loading area data:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    loadData();
+  }, []);
+
+  if (loading) {
+    return <div>Loading...</div>;
+  }
+
+  if (!areaData) {
+    return <div>Error loading data</div>;
+  }
   
   return (
     <div className="container-sm my-5">
