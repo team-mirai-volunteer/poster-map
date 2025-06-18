@@ -12,9 +12,9 @@ import { getPrefectureConfig } from '@/lib/prefecture-config';
 const Map = dynamic(() => import('@/components/Map'), { ssr: false });
 
 interface PageProps {
-  params: {
+  params: Promise<{
     prefecture: string;
-  };
+  }>;
 }
 
 function getPinNote(note: string | null): string {
@@ -59,11 +59,11 @@ async function loadVoteVenuePins(layer: any, L: any, area: string | null = "") {
   });
 }
 
-function MapPageContent({ params }: PageProps) {
+function MapPageContent({ prefecture }: { prefecture: string }) {
   const searchParams = useSearchParams();
   const [mapInstance, setMapInstance] = useState<any>(null);
   
-  const prefectureConfig = getPrefectureConfig(params.prefecture);
+  const prefectureConfig = getPrefectureConfig(prefecture);
   if (!prefectureConfig) {
     notFound();
   }
@@ -140,7 +140,7 @@ function MapPageContent({ params }: PageProps) {
 
       try {
         // Load board pins
-        const area = params.prefecture;
+        const area = prefecture;
         const pins = await getBoardPins(block, smallBlock, area);
         const areaList = await getAreaList(area);
         
@@ -169,7 +169,7 @@ function MapPageContent({ params }: PageProps) {
     };
 
     initializeMap();
-  }, [mapInstance, block, smallBlock, params.prefecture, prefectureConfig]);
+  }, [mapInstance, block, smallBlock, prefecture, prefectureConfig]);
 
   return (
     <>
@@ -221,10 +221,11 @@ function MapPageContent({ params }: PageProps) {
   );
 }
 
-export default function MapPage({ params }: PageProps) {
+export default async function MapPage({ params }: PageProps) {
+  const { prefecture } = await params;
   return (
     <Suspense fallback={<div>Loading...</div>}>
-      <MapPageContent params={params} />
+      <MapPageContent prefecture={prefecture} />
     </Suspense>
   );
 }

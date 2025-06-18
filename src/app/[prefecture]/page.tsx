@@ -3,13 +3,14 @@ import { notFound } from 'next/navigation';
 import { getPrefectureConfig } from '@/lib/prefecture-config';
 
 interface PageProps {
-  params: {
+  params: Promise<{
     prefecture: string;
-  };
+  }>;
 }
 
-export default function PrefecturePage({ params }: PageProps) {
-  const prefectureConfig = getPrefectureConfig(params.prefecture);
+export default async function PrefecturePage({ params }: PageProps) {
+  const { prefecture } = await params;
+  const prefectureConfig = getPrefectureConfig(prefecture);
 
   if (!prefectureConfig) {
     notFound();
@@ -33,7 +34,7 @@ export default function PrefecturePage({ params }: PageProps) {
 
         <div className="list-group mb-4 mt-4">
           <Link 
-            href={`/${params.prefecture}/all`} 
+            href={`/${prefecture}/all`} 
             className="list-group-item list-group-item-action"
           >
             {nameJa}全域
@@ -42,7 +43,7 @@ export default function PrefecturePage({ params }: PageProps) {
           {blocks && blocks.map((block) => (
             <Link 
               key={block.id}
-              href={`/${params.prefecture}/all?block=${block.id}`} 
+              href={`/${prefecture}/all?block=${block.id}`} 
               className="list-group-item list-group-item-action"
             >
               {block.name}
