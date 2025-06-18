@@ -32,7 +32,7 @@ def main(input_path, output_path):
         filtered_data.to_json(filtered_output_path, orient='records', force_ascii=False)
         print(f"Filtered file saved to {filtered_output_path}")
 
-    json_output_path = os.path.join(output_path, 'all.json')
+    json_output_path = os.path.join(output_path, 'board.json')
     final_data.to_json(json_output_path, orient='records', force_ascii=False)
     print(f"File saved to {json_output_path}")
 

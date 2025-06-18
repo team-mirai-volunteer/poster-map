@@ -28,7 +28,7 @@ export async function getBoardPins(block: string | null = null, smallBlock: stri
   const input = area ? `${area}/` : ""
   let response;
   if (block === null) {
-    response = await fetch(`/data/${input}all.json`);
+    response = await fetch(`/data/${input}board.json`);
   } else {
     response = await fetch(`/data/${input}block/${block}.json`);
   }
