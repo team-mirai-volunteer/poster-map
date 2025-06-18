@@ -6,6 +6,7 @@ import dynamic from 'next/dynamic';
 import { getBoardPins, getProgress, getProgressCountdown, getVoteVenuePins, getAreaList } from '@/lib/api';
 import { getStatusText, getStatusColor, createProgressBox, createProgressBoxCountdown, createBaseLayers, createGrayIcon } from '@/lib/map-utils';
 import { PinData, VoteVenue, AreaList } from '@/lib/types';
+import { escape } from 'querystring';
 
 const LeafletMap = dynamic(() => import('@/components/Map'), { ssr: false });
 
@@ -71,11 +72,14 @@ async function loadBoardPins(pins: PinData[], layer: any, areaList: AreaList, L:
       fillOpacity: 0.9,
     }).addTo(layer);
     
-    const areaName = areaList[pin.area_id]?.area_name || '不明';
+    const escape = (s: string) => s.replace(/[&<>"'`]/g, c =>
+      ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;','`':'&#x60;'} as any)[c]);
+
+    const areaName = escape(areaList[String(pin.area_id)]?.area_name || '不明');
     marker.bindPopup(`
-      <b>${areaName} ${pin.name}</b><br>
+      <b>${areaName} ${escape(pin.name)}</b><br>
       ステータス: ${getStatusText(pin.status)}<br>
-      備考: ${getPinNote((pin as any).note)}<br>
+      備考: ${escape(getPinNote((pin as any).note))}<br>
       座標: <a href="https://www.google.com/maps/search/${pin.lat},+${pin.long}" target="_blank" rel="noopener noreferrer">(${pin.lat}, ${pin.long})</a>
     `);
   });
@@ -88,11 +92,15 @@ async function loadVoteVenuePins(layer: any, L: any, area:string | null = null) 
     const marker = L.marker([pin.lat, pin.long], {
       icon: grayIcon
     }).addTo(layer);
+
+    const escape = (s: string) => s.replace(/[&<>"'`]/g, c =>
+      ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;','`':'&#x60;'} as any)[c]);
+
     marker.bindPopup(`
-      <b>期日前投票所: ${pin.name}</b><br>
-      ${pin.address}<br>
-      期間: ${pin.period}<br>
-       <a href="https://www.google.com/maps/search/${pin.lat},+${pin.long}" target="_blank" rel="noopener noreferrer">(${pin.lat}, ${pin.long})</a>
+      <b>期日前投票所: ${escape(pin.name)}</b><br>
+      ${escape(pin.address)}<br>
+      期間: ${escape(pin.period)}<br>
+      <a href="https://www.google.com/maps/search/${pin.lat},+${pin.long}" target="_blank" rel="noopener noreferrer">(${pin.lat}, ${pin.long})</a>
     `);
   });
 }
@@ -197,6 +205,11 @@ function MapPageContent() {
     };
 
     initializeMap();
+
+    return () => {
+      mapInstance.off('locationfound');
+    };
+
   }, [mapInstance, block, smallBlock]);
 
   return (
