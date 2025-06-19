@@ -10,13 +10,13 @@ export async function generateStaticParams() {
 }
 
 interface PageProps {
-  params: Promise<{
+  params: {
     prefecture: string;
-  }>;
+  };
 }
 
 export default async function PrefecturePage({ params }: PageProps) {
-  const { prefecture } = await params;
+  const { prefecture } = params;
   const prefectureConfig = getPrefectureConfig(prefecture);
 
   if (!prefectureConfig) {
