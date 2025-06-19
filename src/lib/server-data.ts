@@ -35,7 +35,7 @@ export interface PrefectureData {
 }
 
 export async function loadPrefectureData(prefecture: string): Promise<PrefectureData> {
-  const dataDir = path.join(process.cwd(), 'public', 'data', prefecture);
+  const dataDir = path.join(process.cwd(), 'src', 'data', prefecture);
   const csvPath = path.join(dataDir, 'board.csv');
   
   // Load only CSV data
