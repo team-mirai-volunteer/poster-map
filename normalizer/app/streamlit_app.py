@@ -136,7 +136,10 @@ if st.button("CSV正規化を実行"):
             config["format"]["city"] = city_val
 
             csv_data = df.values.tolist()
-            st.info("処理中…しばらくお待ちください")
+            
+            info_placeholder = st.empty()
+            info_placeholder.info("処理中…しばらくお待ちください")
+            
             results = process_csv_data(
                 csv_data,
                 config,
@@ -146,6 +149,7 @@ if st.button("CSV正規化を実行"):
                 gsi_distance=int(gsi_distance),
                 priority=priority
             )
+            
             output_header = ["prefecture", "city"] + list(output_columns)
             out_df = pd.DataFrame(
                 [
@@ -155,8 +159,10 @@ if st.button("CSV正規化を実行"):
                 ],
                 columns=output_header
             )
+            
             progress_bar.progress(1.0)
             status_text.text("完了")
+            info_placeholder.empty()
             msg = "処理完了！出力データをダウンロードできます"
             if warning_count > 0:
                 msg += f"。変換中に {warning_count} 件の警告が発生しました。"
