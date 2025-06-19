@@ -2,7 +2,7 @@ import streamlit as st
 import pandas as pd
 import io
 import os
-from geo_processor import process_csv_data
+from geo_processor import *
 
 st.set_page_config(page_title="CSV正規化ツール", layout="wide")
 
@@ -71,6 +71,9 @@ if csv_file is not None:
     number_col_guess = next((c for c in col_names if "番号" in c or "No" in c or "NO" in c or "no" in c or "num" in c), col_names[0] if col_names else "")
     addr_col_guess = next((c for c in col_names if "住" in c), col_names[0] if col_names else "")
     name_col_guess = next((c for c in col_names if "名" in c), col_names[1] if len(col_names) > 1 else "")
+    # 都道府県名を推測する
+    addr_right = extract_address_like_text_from_last_row(df)
+    pref_val = get_prefecture_from_partial_address(city_val + addr_right)
 
 st.header("2. 設定を構成")
 pref_val = st.text_input("都道府県（prefecture: 固定値）", value=pref_val)
