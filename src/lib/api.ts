@@ -1,18 +1,5 @@
-import { ProgressData, PinData } from './types';
+import { PinData } from './types';
 
-export async function getProgress(area:string | null = ""): Promise<ProgressData> {
-  const input = area ? `${area}/` : ""
-  try {
-    const response = await fetch(`/data/${input}summary.json`);
-    if (!response.ok) throw new Error('Progress data not found');
-    return response.json();
-  } catch (error) {
-    if (area === 'tokyo-2024') {
-      return { total: 0 };
-    }
-    throw error;
-  }
-}
 
 export async function getBoardPins(block: string | null = null, smallBlock: string | null = null, area:string | null = ""): Promise<PinData[]> {
   const input = area ? `${area}/` : ""

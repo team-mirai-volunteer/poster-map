@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import dynamic from 'next/dynamic';
-import { getProgress } from '@/lib/api';
+// Removed getProgress import
 import { createProgressBox, createProgressBoxCountdown } from '@/lib/map-utils';
 import { AreaList, ProgressData } from '@/lib/types';
 
@@ -88,8 +88,8 @@ export default function SummaryPage() {
       }).addTo(mapInstance);
 
       try {
-        // Only load progress data - getAreaList and getProgressCountdown were removed
-        const progress = await getProgress();
+        // Set default progress data - getProgress was removed
+        const progress = { total: 0 };
 
         // Commented out - getAreaList was removed
         // // Load GeoJSON data for each area
