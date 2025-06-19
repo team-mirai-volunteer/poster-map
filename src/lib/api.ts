@@ -61,36 +61,26 @@ export async function getVoteVenuePins(area:string | null = ""): Promise<VoteVen
 
 export async function getBoardPins(block: string | null = null, smallBlock: string | null = null, area:string | null = ""): Promise<PinData[]> {
   const input = area ? `${area}/` : ""
-  let response;
   
-  // Try JSON first, fall back to CSV for legacy data
-  try {
-    if (block === null) {
-      response = await fetch(`/data/${input}board.json`);
-      if (!response.ok) throw new Error('JSON not found');
-    } else {
-      response = await fetch(`/data/${input}block/${block}.json`);
-    }
-    const data: PinData[] = await response.json();
-    
-    if (smallBlock === null) {
-      return data;
-    } else {
-      const smallBlockSplit = smallBlock.split('-');
-      const areaName = smallBlockSplit[0];
-      const smallBlockId = Number(smallBlockSplit[1]);
-      const areaList = await getAreaList(area);
-      const areaId = Number(findKeyByAreaName(areaList, areaName));
-      return filterDataByAreaIdAndSmallBlock(data, areaId, smallBlockId);
-    }
-  } catch (error) {
-    // Fallback to CSV for tokyo-2024
-    if (area === 'tokyo-2024' && block === null) {
-      const csvResponse = await fetch(`/data/${input}board.csv`);
-      const csvText = await csvResponse.text();
-      return parseCSVToPinData(csvText);
-    }
-    throw error;
+  // Load from CSV
+  const response = await fetch(`/data/${input}board.csv`);
+  
+  if (!response.ok) {
+    throw new Error('CSV file not found');
+  }
+  
+  const csvText = await response.text();
+  const data: PinData[] = parseCSVToPinData(csvText);
+  
+  if (smallBlock === null) {
+    return data;
+  } else {
+    const smallBlockSplit = smallBlock.split('-');
+    const areaName = smallBlockSplit[0];
+    const smallBlockId = Number(smallBlockSplit[1]);
+    const areaList = await getAreaList(area);
+    const areaId = Number(findKeyByAreaName(areaList, areaName));
+    return filterDataByAreaIdAndSmallBlock(data, areaId, smallBlockId);
   }
 }
 
