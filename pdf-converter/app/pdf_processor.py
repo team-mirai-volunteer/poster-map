@@ -33,17 +33,17 @@ class PDFProcessor:
                 f.write(uploaded_file.getbuffer())
             
             if progress_callback:
-                progress_callback("PDFを画像に変換中...")
-            
+                progress_callback("PDFを画像に変換中...", 0)
+
             images = convert_from_path(pdf_path, dpi=300)
             
             if progress_callback:
-                progress_callback(f"PDFのページ数: {len(images)}")
-            
-            for i, image in enumerate(images):
+                progress_callback(f"PDFのページ数: {len(images)}", 0)
+
+            for i, image in enumerate(images[:2]):
                 if progress_callback:
-                    progress_callback(f"ページ {i+1} を処理中...", image)
-                
+                    progress_callback(f"{i+1}ページ目を処理中...", image=image, idx=1)
+
                 image_path = os.path.join(tmp_dir, f"{base_name}_temp_image_{i+1}.jpg")
                 image.save(image_path, "JPEG")
                 
