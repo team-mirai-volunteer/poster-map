@@ -40,7 +40,7 @@ class PDFProcessor:
             if progress_callback:
                 progress_callback(f"PDFのページ数: {len(images)}", 0)
 
-            for i, image in enumerate(images[:2]):
+            for i, image in enumerate(images):
                 if progress_callback:
                     progress_callback(f"{i+1}ページ目を処理中...", image=image, idx=1)
 
