@@ -90,10 +90,16 @@ output_columns = st.multiselect(
 st.header("3. 処理を実行")
 log_lines = []
 log_box = st.empty()
+progress_bar = st.progress(0)
+status_text = st.empty()
+
 def log_callback(msg):
-    log_lines.append(msg)
-    # ---ログに新行追加ごとにキーを変えて再レンダリング、最下部スクロール強制---
+    log_lines.append(str(msg))
     log_box.text_area("ログ", "\n".join(log_lines[-500:]), height=300, key=f"log-{len(log_lines)}")
+
+def progress_callback(idx, total):
+    progress_bar.progress(idx / total)
+    status_text.text(f"処理中: {idx} / {total} 行")
 
 if st.button("CSV正規化を実行"):
     if df is not None:
@@ -126,7 +132,7 @@ if st.button("CSV正規化を実行"):
             results = process_csv_data(
                 csv_data,
                 config,
-                progress_callback=None,
+                progress_callback=progress_callback,
                 log_callback=log_callback,
                 gsi_check=gsi_check,
                 gsi_distance=int(gsi_distance),
@@ -151,7 +157,7 @@ if st.button("CSV正規化を実行"):
             st.download_button(
                 "結果CSVをダウンロード",
                 data=csv_buf.getvalue(),
-                file_name="normalized_output.csv",
+                file_name=f"{city_val}_normalized.csv",
                 mime="text/csv"
             )
         except Exception as e:

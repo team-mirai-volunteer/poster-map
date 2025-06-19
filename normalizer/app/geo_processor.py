@@ -92,11 +92,11 @@ def get_best_latlng(address, api_key, gsi_check=True, distance_threshold=200, pr
     dist = haversine(lat1, lon1, lat2, lon2)
     if dist >= distance_threshold:
         if logger:
-            logger(f"警告: '{address}' のGoogle座標と国土地理院座標が {int(dist)}m ズレ。")
+            pre_msg = f"警告: '{address}' のGoogle座標と国土地理院座標が {int(dist)}m ズレ。"
             if priority == "gsi":
-                logger("国土地理院APIの座標を採用します。")
+                logger(pre_msg + "国土地理院APIの座標を採用します。")
             elif priority == "google":
-                logger("Google座標を採用します。")
+                logger(pre_msg + "Google座標を採用します。")
         return (lat2, lon2, "gsi") if priority == "gsi" else (lat1, lon1, "google")
     # ズレが閾値未満ならGoogle優先
     return lat1, lon1, "google"
@@ -167,7 +167,7 @@ def process_csv_data(
 
         results.append(out_row)
 
-        if log_callback:
-            log_callback(f"{idx}行目 完了")
+    if log_callback:
+        log_callback(f"完了")
 
     return results
