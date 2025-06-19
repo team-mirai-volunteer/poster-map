@@ -1,6 +1,6 @@
 import fs from 'fs';
 import path from 'path';
-import { PinData, AreaList, VoteVenue, ProgressData } from './types';
+import { PinData, AreaList, ProgressData } from './types';
 
 export function loadCSVData(filePath: string): PinData[] {
   try {
@@ -31,7 +31,6 @@ export interface PrefectureData {
   areaList: AreaList;
   progress: ProgressData;
   progressCountdown: ProgressData;
-  voteVenues: VoteVenue[];
 }
 
 export async function loadPrefectureData(prefecture: string): Promise<PrefectureData> {
@@ -43,7 +42,6 @@ export async function loadPrefectureData(prefecture: string): Promise<Prefecture
     pins: loadCSVData(csvPath),
     areaList: {},
     progress: { total: 0 },
-    progressCountdown: { total: 0 },
-    voteVenues: []
+    progressCountdown: { total: 0 }
   };
 }

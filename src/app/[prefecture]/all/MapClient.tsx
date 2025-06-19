@@ -4,8 +4,8 @@ import { useEffect, useState, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { notFound } from 'next/navigation';
 import dynamic from 'next/dynamic';
-import { getStatusText, getStatusColor, createProgressBox, createProgressBoxCountdown, createBaseLayers, createGrayIcon } from '@/lib/map-utils';
-import { PinData, VoteVenue, AreaList } from '@/lib/types';
+import { getStatusText, getStatusColor, createProgressBox, createProgressBoxCountdown, createBaseLayers } from '@/lib/map-utils';
+import { PinData, AreaList } from '@/lib/types';
 import { getPrefectureConfig } from '@/lib/prefecture-config';
 import { PrefectureData } from '@/lib/server-data';
 
@@ -37,20 +37,6 @@ async function loadBoardPins(pins: PinData[], layer: any, areaList: AreaList, L:
   });
 }
 
-async function loadVoteVenuePins(pins: VoteVenue[], layer: any, L: any) {
-  const grayIcon = createGrayIcon(L);
-  pins.forEach(pin => {
-    const marker = L.marker([pin.lat, pin.long], {
-      icon: grayIcon
-    }).addTo(layer);
-    marker.bindPopup(`
-      <b>期日前投票所: ${pin.name}</b><br>
-      ${pin.address}<br>
-      期間: ${pin.period}<br>
-      座標: <a href="https://www.google.com/maps/search/${pin.lat},+${pin.long}" target="_blank" rel="noopener noreferrer">(${pin.lat}, ${pin.long})</a>
-    `);
-  });
-}
 
 function MapPageContent({ prefecture, prefectureData }: { prefecture: string; prefectureData: PrefectureData }) {
   const searchParams = useSearchParams();
@@ -78,7 +64,6 @@ function MapPageContent({ prefecture, prefectureData }: { prefecture: string; pr
         '要確認': L.layerGroup(),
         '異常対応中': L.layerGroup(),
         '削除': L.layerGroup(),
-        '期日前投票所': L.layerGroup(),
       };
 
       // Add all overlays to map
@@ -133,7 +118,7 @@ function MapPageContent({ prefecture, prefectureData }: { prefecture: string; pr
 
       try {
         // Use pre-loaded data
-        const { pins, areaList, progress, progressCountdown, voteVenues } = prefectureData;
+        const { pins, areaList, progress, progressCountdown } = prefectureData;
         
         // Filter pins by block if needed
         let filteredPins = pins;
@@ -152,9 +137,6 @@ function MapPageContent({ prefecture, prefectureData }: { prefecture: string; pr
         // Use pre-loaded progress data
         createProgressBox(L, Number((progress.total * 100).toFixed(2)), 'topleft').addTo(mapInstance);
         createProgressBoxCountdown(L, parseInt(progressCountdown.total.toString()), 'topleft').addTo(mapInstance);
-
-        // Load vote venue pins
-        await loadVoteVenuePins(voteVenues, overlays['期日前投票所'], L);
 
       } catch (error) {
         console.error('Error loading map data:', error);
