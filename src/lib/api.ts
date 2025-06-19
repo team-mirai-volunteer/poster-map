@@ -79,7 +79,7 @@ export async function getBoardPins(block: string | null = null, smallBlock: stri
       const smallBlockSplit = smallBlock.split('-');
       const areaName = smallBlockSplit[0];
       const smallBlockId = Number(smallBlockSplit[1]);
-      const areaList = await getAreaList();
+      const areaList = await getAreaList(area);
       const areaId = Number(findKeyByAreaName(areaList, areaName));
       return filterDataByAreaIdAndSmallBlock(data, areaId, smallBlockId);
     }
