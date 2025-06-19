@@ -1,11 +1,14 @@
-import csv
-import json
-import time
-import requests
-import unicodedata
 import re
+import unicodedata
+import requests
+import time
+from math import radians, cos, sin, sqrt, atan2
 import os
-from typing import Dict, List, Tuple, Any, Optional
+
+# .envから環境変数をロード（/app/.env優先）
+from dotenv import load_dotenv
+load_dotenv('/app/.env')
+load_dotenv()
 
 KANJI_NUMERAL_MAP = {
     "〇": 0, "一": 1, "二": 2, "三": 3, "四": 4,
@@ -13,7 +16,7 @@ KANJI_NUMERAL_MAP = {
     "十": 10
 }
 
-def kanji_to_number(kanji: str) -> int:
+def kanji_to_number(kanji):
     if kanji == "十":
         return 10
     if "十" in kanji:
@@ -26,7 +29,7 @@ def kanji_to_number(kanji: str) -> int:
         num = num * 10 + KANJI_NUMERAL_MAP.get(ch, 0)
     return num
 
-def normalize_address_digits(addr: str) -> str:
+def normalize_address_digits(addr):
     addr = unicodedata.normalize("NFKC", addr)
     addr = re.sub(r"[‐－―ー−]", "-", addr)
     def replacer(match):
@@ -35,47 +38,70 @@ def normalize_address_digits(addr: str) -> str:
         return f"{kanji_to_number(kanji)}{unit}"
     return re.sub(r"([〇一二三四五六七八九十]+)(丁目|番|号)", replacer, addr).strip().strip("　")
 
-def clean(val: Any) -> str:
-    return val.strip().strip("　") if isinstance(val, str) else str(val)
+def clean(val):
+    return val.strip().strip("　") if isinstance(val, str) else val
 
-def get_lat_lng(address: str, api_key: str, max_retries: int = 5) -> Tuple[str, str]:
+def haversine(lat1, lon1, lat2, lon2):
+    R = 6371000
+    phi1, phi2 = radians(lat1), radians(lat2)
+    dphi = radians(lat2 - lat1)
+    dlambda = radians(lon2 - lon1)
+    a = sin(dphi/2)**2 + cos(phi1)*cos(phi2)*sin(dlambda/2)**2
+    return 2 * R * atan2(sqrt(a), sqrt(1 - a))
+
+def get_gmap_latlng(address, api_key):
     url = "https://maps.googleapis.com/maps/api/geocode/json"
-    params = {"address": address, "key": api_key}
-    
-    for attempt in range(max_retries):
-        try:
-            res = requests.get(url, params=params)
-            data = res.json()
-            status = data.get("status")
-            
-            if status == "OK":
-                loc = data["results"][0]["geometry"]["location"]
-                return str(loc["lat"]), str(loc["lng"])
-            elif status == "REQUEST_DENIED":
-                error_msg = data.get('error_message', 'APIキーが無効です。')
-                # Retry on permission errors
-                if attempt < max_retries - 1:
-                    time.sleep(1)  # Wait 1 second before retry
-                    continue
-                return f"ERROR:REQUEST_DENIED", f"ERROR:{error_msg}"
-            elif status == "OVER_QUERY_LIMIT":
-                # Retry on rate limit errors
-                if attempt < max_retries - 1:
-                    time.sleep(2)  # Wait 2 seconds before retry
-                    continue
-                return f"ERROR:{status}", f"ERROR:レート制限に達しました"
-            else:
-                return f"ERROR:{status}", f"ERROR:{status}"
-        except Exception as e:
-            if attempt < max_retries - 1:
-                time.sleep(1)
-                continue
-            return f"ERROR:{str(e)}", f"ERROR:{str(e)}"
-    
-    return "ERROR:MAX_RETRIES", "ERROR:最大リトライ回数を超えました"
+    params = {"address": address, "key": api_key, "language": "ja"}
+    try:
+        res = requests.get(url, params=params)
+        data = res.json()
+        status = data.get("status")
+        if status == "OK":
+            loc = data["results"][0]["geometry"]["location"]
+            return loc["lat"], loc["lng"]
+        else:
+            return None, None
+    except Exception:
+        return None, None
 
-def render_template(template_str: str, row: List[str], cache: Dict[str, Any], 
-                   full_api_address: str, api_key: str, sleep_msec: int) -> str:
+def get_gsi_latlng(address):
+    url = "https://msearch.gsi.go.jp/address-search/AddressSearch"
+    params = {"q": address}
+    try:
+        res = requests.get(url, params=params)
+        result = res.json()
+        if result and "geometry" in result[0]:
+            lon, lat = result[0]["geometry"]["coordinates"]
+            return lat, lon
+        return None, None
+    except Exception:
+        return None, None
+
+def get_best_latlng(address, api_key, gsi_check=True, distance_threshold=200, priority="gsi", logger=None):
+    lat1, lon1 = get_gmap_latlng(address, api_key)
+    lat2, lon2 = get_gsi_latlng(address) if gsi_check else (None, None)
+
+    if lat1 is None and lat2 is None:
+        if logger: logger(f"警告: '{address}' の座標取得に失敗しました。")
+        return None, None, "none"
+    if lat1 is not None and lat2 is None:
+        return lat1, lon1, "google"
+    if lat2 is not None and lat1 is None:
+        return lat2, lon2, "gsi"
+
+    dist = haversine(lat1, lon1, lat2, lon2)
+    if dist >= distance_threshold:
+        if logger:
+            logger(f"警告: '{address}' のGoogle座標と国土地理院座標が {int(dist)}m ズレ。")
+            if priority == "gsi":
+                logger("国土地理院APIの座標を採用します。")
+            elif priority == "google":
+                logger("Google座標を採用します。")
+        return (lat2, lon2, "gsi") if priority == "gsi" else (lat1, lon1, "google")
+    # ズレが閾値未満ならGoogle優先
+    return lat1, lon1, "google"
+
+def render_template(template_str, row, cache, full_api_address, api_key, sleep_msec, gsi_check, gsi_dist, priority, logger=None):
     def replacer(match):
         token = match.group(1)
         if token.isdigit():
@@ -83,38 +109,38 @@ def render_template(template_str: str, row: List[str], cache: Dict[str, Any],
             return clean(row[idx]) if idx < len(row) else ""
         elif token in ("lat", "long"):
             if "latlng" not in cache:
-                lat, lng = get_lat_lng(full_api_address, api_key, max_retries=5)
+                lat, lng, source = get_best_latlng(full_api_address, api_key, gsi_check, gsi_dist, priority, logger)
                 cache["latlng"] = (lat, lng)
-                # Only sleep if successful (to avoid double delays on retries)
-                if not lat.startswith("ERROR:"):
-                    time.sleep(sleep_msec / 1000)
+                cache["source"] = source
+                time.sleep(sleep_msec / 1000)
             lat, lng = cache["latlng"]
             return str(clean(lat if token == "lat" else lng))
         else:
             return ""
     return re.sub(r"\{([^{}]+)\}", replacer, template_str)
 
-def process_csv_data(csv_data: List[List[str]], config: Dict[str, Any], 
-                    progress_callback: Optional[Any] = None) -> List[List[str]]:
+def process_csv_data(
+    csv_data, config, progress_callback=None, log_callback=None,
+    gsi_check=True, gsi_distance=200, priority="gsi"
+):
     format_config = config["format"]
     header = list(format_config.keys())
-    
+
     api_needed = any("{lat}" in v or "{long}" in v for v in format_config.values())
-    api_key = config.get("api", {}).get("key") if api_needed else None
+    api_key = os.environ.get("GOOGLE_MAPS_API_KEY") if api_needed else None
     sleep_msec = int(config.get("api", {}).get("sleep", 200)) if api_needed else 200
-    
-    if api_needed and not api_key:
-        raise ValueError("緯度経度を取得するにはAPIキーが必要です。")
-    
+
     results = [header]
-    
+
     for idx, row in enumerate(csv_data, start=1):
         if progress_callback:
             progress_callback(idx, len(csv_data))
-            
+        if log_callback:
+            log_callback(f"{idx}行目を処理中...")
+
         out_row = []
         cache = {}
-        
+
         address_token = format_config.get("address", "")
         if "{" in address_token and "}" in address_token:
             match = re.search(r"\{(\d+)\}", address_token)
@@ -122,44 +148,26 @@ def process_csv_data(csv_data: List[List[str]], config: Dict[str, Any],
             raw_address = row[address_index] if 0 <= address_index < len(row) else ""
         else:
             raw_address = ""
-        
+
         if config.get("normalize_address_digits", False):
             normalized_address = normalize_address_digits(raw_address)
         else:
             normalized_address = raw_address.strip().strip("　")
-        
+
         full_api_address = f"{format_config['prefecture']}{format_config['city']}{normalized_address}"
-        
+
         for col_name, template in format_config.items():
             if col_name == "address":
                 out_row.append(clean(normalized_address))
             else:
-                rendered = render_template(template, row, cache, full_api_address, api_key or "", sleep_msec)
+                rendered = render_template(
+                    template, row, cache, full_api_address, api_key, sleep_msec, gsi_check, gsi_distance, priority, log_callback
+                )
                 out_row.append(rendered)
-        
-        results.append(out_row)
-    
-    return results
 
-def create_config_from_params(prefecture: str, city: str, column_mapping: Dict[str, int],
-                             api_key: str, sleep_ms: int = 200, 
-                             normalize_digits: bool = False) -> Dict[str, Any]:
-    format_config = {
-        "prefecture": prefecture,
-        "city": city
-    }
-    
-    for field_name, column_index in column_mapping.items():
-        if field_name in ["number", "address", "name"]:
-            format_config[field_name] = f"{{{column_index}}}"
-        elif field_name in ["lat", "long"]:
-            format_config[field_name] = f"{{{field_name}}}"
-    
-    return {
-        "api": {
-            "key": api_key,
-            "sleep": sleep_ms
-        },
-        "format": format_config,
-        "normalize_address_digits": normalize_digits
-    }
+        results.append(out_row)
+
+        if log_callback:
+            log_callback(f"{idx}行目 完了")
+
+    return results
