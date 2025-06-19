@@ -90,11 +90,16 @@ output_columns = st.multiselect(
 st.header("3. 処理を実行")
 log_lines = []
 log_box = st.empty()
+warning_count = 0
 progress_bar = st.progress(0)
 status_text = st.empty()
 
 def log_callback(msg):
-    log_lines.append(str(msg))
+    global warning_count
+    msg = str(msg)
+    log_lines.append(msg)
+    if msg.startswith("警告"):
+        warning_count += 1
     log_box.text_area("ログ", "\n".join(log_lines[-500:]), height=300, key=f"log-{len(log_lines)}")
 
 def progress_callback(idx, total):
@@ -147,7 +152,13 @@ if st.button("CSV正規化を実行"):
                 ],
                 columns=output_header
             )
-            st.success("処理完了！出力データをダウンロードできます")
+            progress_bar.progress(1.0)
+            status_text.text("完了")
+            msg = "処理完了！出力データをダウンロードできます"
+            if warning_count > 0:
+                msg += f"。変換中に {warning_count} 件の警告が発生しました。"
+            st.success(msg)
+            
             # ---出力プレビューもインデックス1始まりで---
             out_df_view = out_df.copy()
             out_df_view.index = out_df_view.index + 1
