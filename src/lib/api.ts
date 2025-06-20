@@ -1,57 +1,37 @@
-import { AreaList, ProgressData, VoteVenue, PinData } from './types';
+import { PinData } from './types';
 
-export async function getAreaList(): Promise<AreaList> {
-  const response = await fetch('/data/arealist.json');
-  return response.json();
-}
 
-export async function getProgress(): Promise<ProgressData> {
-  const response = await fetch('/data/summary.json');
-  return response.json();
-}
-
-export async function getProgressCountdown(): Promise<ProgressData> {
-  const response = await fetch('/data/summary_absolute.json');
-  return response.json();
-}
-
-export async function getVoteVenuePins(): Promise<VoteVenue[]> {
-  const response = await fetch('/data/vote_venue.json');
-  return response.json();
-}
-
-export async function getBoardPins(block: string | null = null, smallBlock: string | null = null): Promise<PinData[]> {
-  let response;
-  if (block === null) {
-    response = await fetch('/data/all.json');
-  } else {
-    response = await fetch(`/data/block/${block}.json`);
+export async function getBoardPins(block: string | null = null, smallBlock: string | null = null, area:string | null = ""): Promise<PinData[]> {
+  const input = area ? `${area}/` : ""
+  
+  // Load from CSV
+  const response = await fetch(`/data/${input}board.csv`);
+  
+  if (!response.ok) {
+    throw new Error('CSV file not found');
   }
-  const data: PinData[] = await response.json();
-
-  if (smallBlock === null) {
-    return data;
-  } else {
-    const smallBlockSplit = smallBlock.split('-');
-    const areaName = smallBlockSplit[0];
-    const smallBlockId = Number(smallBlockSplit[1]);
-    const areaList = await getAreaList();
-    const areaId = Number(findKeyByAreaName(areaList, areaName));
-    return filterDataByAreaIdAndSmallBlock(data, areaId, smallBlockId);
-  }
+  
+  const csvText = await response.text();
+  const data: PinData[] = parseCSVToPinData(csvText);
+  
+  return data;
 }
 
-export function findKeyByAreaName(data: AreaList, areaName: string): string | null {
-  for (const key in data) {
-    if (data[key].area_name === areaName) {
-      return key;
-    }
-  }
-  return null;
-}
-
-export function filterDataByAreaIdAndSmallBlock(data: PinData[], areaId: number, smallBlockId: number): PinData[] {
-  return data.filter(item => {
-    return item.area_id === areaId && item.name.split('-')[0] === String(smallBlockId);
+function parseCSVToPinData(csvText: string): PinData[] {
+  const lines = csvText.trim().split('\n');
+  const headers = lines[0].split(',');
+  
+  return lines.slice(1).map(line => {
+    const values = line.split(',');
+    const note = values[5] ? values[5].trim() : null;
+    return {
+      area_id: 1, // Default area_id for legacy data
+      name: values[1],
+      lat: parseFloat(values[2]),
+      long: parseFloat(values[3]),
+      status: parseInt(values[4]),
+      note: note === '' ? null : note
+    };
   });
 }
+

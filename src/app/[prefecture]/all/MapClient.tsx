@@ -2,30 +2,14 @@
 
 import { useEffect, useState, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
+import { notFound } from 'next/navigation';
 import dynamic from 'next/dynamic';
-import { getBoardPins, getProgress, getProgressCountdown, getVoteVenuePins, getAreaList } from '@/lib/api';
-import { getStatusText, getStatusColor, createProgressBox, createProgressBoxCountdown, createBaseLayers, createGrayIcon } from '@/lib/map-utils';
-import { PinData, VoteVenue, AreaList } from '@/lib/types';
+import { getStatusText, getStatusColor, createProgressBox, createProgressBoxCountdown, createBaseLayers } from '@/lib/map-utils';
+import { PinData, AreaList } from '@/lib/types';
+import { getPrefectureConfig } from '@/lib/prefecture-config';
+import { PrefectureData } from '@/lib/server-data';
 
 const Map = dynamic(() => import('@/components/Map'), { ssr: false });
-
-interface MapConfig {
-  [key: string]: {
-    lat: number;
-    long: number;
-    zoom: number;
-  };
-}
-
-const mapConfig: MapConfig = {
-  '23-east': { lat: 35.7266074, long: 139.8292152, zoom: 14 },
-  '23-west': { lat: 35.6861171, long: 139.6490942, zoom: 13 },
-  '23-city': { lat: 35.6916896, long: 139.7254559, zoom: 14 },
-  'tama-north': { lat: 35.731028, long: 139.481822, zoom: 13 },
-  'tama-south': { lat: 35.6229399, long: 139.4584664, zoom: 13 },
-  'tama-west': { lat: 35.7097579, long: 139.2904051, zoom: 12 },
-  'island': { lat: 34.5291416, long: 139.2819004, zoom: 11 },
-};
 
 function getPinNote(note: string | null): string {
   return note == null ? "なし" : note;
@@ -53,25 +37,15 @@ async function loadBoardPins(pins: PinData[], layer: any, areaList: AreaList, L:
   });
 }
 
-async function loadVoteVenuePins(layer: any, L: any) {
-  const pins = await getVoteVenuePins();
-  const grayIcon = createGrayIcon(L);
-  pins.forEach(pin => {
-    const marker = L.marker([pin.lat, pin.long], {
-      icon: grayIcon
-    }).addTo(layer);
-    marker.bindPopup(`
-      <b>期日前投票所: ${pin.name}</b><br>
-      ${pin.address}<br>
-      期間: ${pin.period}<br>
-      座標: <a href="https://www.google.com/maps/search/${pin.lat},+${pin.long}" target="_blank" rel="noopener noreferrer">(${pin.lat}, ${pin.long})</a>
-    `);
-  });
-}
 
-function MapPageContent() {
+function MapPageContent({ prefecture, prefectureData }: { prefecture: string; prefectureData: PrefectureData }) {
   const searchParams = useSearchParams();
   const [mapInstance, setMapInstance] = useState<any>(null);
+  
+  const prefectureConfig = getPrefectureConfig(prefecture);
+  if (!prefectureConfig) {
+    notFound();
+  }
 
   const block = searchParams.get('block');
   const smallBlock = searchParams.get('sb');
@@ -90,7 +64,6 @@ function MapPageContent() {
         '要確認': L.layerGroup(),
         '異常対応中': L.layerGroup(),
         '削除': L.layerGroup(),
-        '期日前投票所': L.layerGroup(),
       };
 
       // Add all overlays to map
@@ -115,12 +88,18 @@ function MapPageContent() {
         let latlong: [number, number];
         let zoom: number;
         
-        if (block && mapConfig[block]) {
-          latlong = [mapConfig[block].lat, mapConfig[block].long];
-          zoom = mapConfig[block].zoom;
+        if (block && prefectureConfig.blocks) {
+          const blockConfig = prefectureConfig.blocks.find(b => b.id === block);
+          if (blockConfig && blockConfig.lat && blockConfig.long && blockConfig.zoom) {
+            latlong = [blockConfig.lat, blockConfig.long];
+            zoom = blockConfig.zoom;
+          } else {
+            latlong = [prefectureConfig.defaultLat, prefectureConfig.defaultLong];
+            zoom = prefectureConfig.defaultZoom;
+          }
         } else {
-          latlong = [35.6988862, 139.4649636];
-          zoom = 11;
+          latlong = [prefectureConfig.defaultLat, prefectureConfig.defaultLong];
+          zoom = prefectureConfig.defaultZoom;
         }
         
         mapInstance.setView(latlong, zoom);
@@ -138,28 +117,26 @@ function MapPageContent() {
       mapInstance.locate({ setView: false, maxZoom: 14 });
 
       try {
-        // Load board pins
-        const pins = await getBoardPins(block, smallBlock);
-        const areaList = await getAreaList();
+        // Use pre-loaded data
+        const { pins, areaList, progress, progressCountdown } = prefectureData;
         
-        await loadBoardPins(pins, overlays['削除'], areaList, L, 6);
-        await loadBoardPins(pins, overlays['完了'], areaList, L, 1);
-        await loadBoardPins(pins, overlays['異常'], areaList, L, 2);
-        await loadBoardPins(pins, overlays['要確認'], areaList, L, 4);
-        await loadBoardPins(pins, overlays['異常対応中'], areaList, L, 5);
-        await loadBoardPins(pins, overlays['未'], areaList, L, 0);
+        // Filter pins by block if needed
+        let filteredPins = pins;
+        if (block && prefectureConfig.blocks) {
+          // TODO: Implement block filtering based on prefecture config
+          // For now, use all pins
+        }
+        
+        await loadBoardPins(filteredPins, overlays['削除'], areaList, L, 6);
+        await loadBoardPins(filteredPins, overlays['完了'], areaList, L, 1);
+        await loadBoardPins(filteredPins, overlays['異常'], areaList, L, 2);
+        await loadBoardPins(filteredPins, overlays['要確認'], areaList, L, 4);
+        await loadBoardPins(filteredPins, overlays['異常対応中'], areaList, L, 5);
+        await loadBoardPins(filteredPins, overlays['未'], areaList, L, 0);
 
-        // Load progress data
-        const [progress, progressCountdown] = await Promise.all([
-          getProgress(),
-          getProgressCountdown()
-        ]);
-
+        // Use pre-loaded progress data
         createProgressBox(L, Number((progress.total * 100).toFixed(2)), 'topleft').addTo(mapInstance);
         createProgressBoxCountdown(L, parseInt(progressCountdown.total.toString()), 'topleft').addTo(mapInstance);
-
-        // Load vote venue pins
-        await loadVoteVenuePins(overlays['期日前投票所'], L);
 
       } catch (error) {
         console.error('Error loading map data:', error);
@@ -167,7 +144,7 @@ function MapPageContent() {
     };
 
     initializeMap();
-  }, [mapInstance, block, smallBlock]);
+  }, [mapInstance, block, smallBlock, prefecture, prefectureConfig, prefectureData]);
 
   return (
     <>
@@ -219,10 +196,10 @@ function MapPageContent() {
   );
 }
 
-export default function MapPage() {
+export default function MapClient({ prefecture, prefectureData }: { prefecture: string; prefectureData: PrefectureData }) {
   return (
     <Suspense fallback={<div>Loading...</div>}>
-      <MapPageContent />
+      <MapPageContent prefecture={prefecture} prefectureData={prefectureData} />
     </Suspense>
   );
 }

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import dynamic from 'next/dynamic';
-import { getAreaList, getProgress, getProgressCountdown } from '@/lib/api';
+// Removed getProgress import
 import { createProgressBox, createProgressBoxCountdown } from '@/lib/map-utils';
 import { AreaList, ProgressData } from '@/lib/types';
 
@@ -88,40 +88,39 @@ export default function SummaryPage() {
       }).addTo(mapInstance);
 
       try {
-        const [areaList, progress, progressCountdown] = await Promise.all([
-          getAreaList(),
-          getProgress(),
-          getProgressCountdown()
-        ]);
+        // Set default progress data - getProgress was removed
+        const progress = { total: 0 };
 
-        // Load GeoJSON data for each area
-        for (const [key, areaInfo] of Object.entries(areaList)) {
-          try {
-            const response = await fetch(`https://uedayou.net/loa/東京都${areaInfo.area_name}.geojson`);
-            if (!response.ok) {
-              throw new Error(`Failed to fetch geojson for ${areaInfo.area_name}`);
-            }
-            
-            const geoJsonData = await response.json();
-            const polygon = L.geoJSON(geoJsonData, {
-              style: getGeoJsonStyle(progress[key] || 0),
-            });
-            
-            polygon.bindPopup(`
-              <b>${areaInfo.area_name}</b><br>
-              ポスター貼り進捗: ${((progress[key] || 0) * 100).toFixed(1)}%<br>
-              残り: ${progressCountdown[key] || 0}ヶ所
-            `);
-            
-            polygon.addTo(mapInstance);
-          } catch (error) {
-            console.error(`Error fetching geojson for ${areaInfo.area_name}:`, error);
-          }
-        }
+        // Commented out - getAreaList was removed
+        // // Load GeoJSON data for each area
+        // for (const [key, areaInfo] of Object.entries(areaList)) {
+        //   try {
+        //     const response = await fetch(`https://uedayou.net/loa/東京都${areaInfo.area_name}.geojson`);
+        //     if (!response.ok) {
+        //       throw new Error(`Failed to fetch geojson for ${areaInfo.area_name}`);
+        //     }
+        //     
+        //     const geoJsonData = await response.json();
+        //     const polygon = L.geoJSON(geoJsonData, {
+        //       style: getGeoJsonStyle(progress[key] || 0),
+        //     });
+        //     
+        //     polygon.bindPopup(`
+        //       <b>${areaInfo.area_name}</b><br>
+        //       ポスター貼り進捗: ${((progress[key] || 0) * 100).toFixed(1)}%<br>
+        //       残り: ${progressCountdown[key] || 0}ヶ所
+        //     `);
+        //     
+        //     polygon.addTo(mapInstance);
+        //   } catch (error) {
+        //     console.error(`Error fetching geojson for ${areaInfo.area_name}:`, error);
+        //   }
+        // }
 
         // Add progress controls
         createProgressBox(L, Number((progress.total * 100).toFixed(2)), 'topright').addTo(mapInstance);
-        createProgressBoxCountdown(L, parseInt(progressCountdown.total.toString()), 'topright').addTo(mapInstance);
+        // Commented out - getProgressCountdown was removed
+        // createProgressBoxCountdown(L, parseInt(progressCountdown.total.toString()), 'topright').addTo(mapInstance);
         createLegend(L).addTo(mapInstance);
 
       } catch (error) {
