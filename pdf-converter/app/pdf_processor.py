@@ -17,8 +17,8 @@ class PDFProcessor:
     def encode_image(self, image_path: str) -> str:
         with open(image_path, "rb") as image_file:
             return base64.b64encode(image_file.read()).decode("utf-8")
-    
-    def process_pdf(self, uploaded_file, progress_callback=None) -> pd.DataFrame:
+
+    def process_pdf(self, uploaded_file, progress_callback=None, content_callback=None) -> pd.DataFrame:
         tmp_dir = tempfile.mkdtemp()
         
         try:
@@ -33,16 +33,21 @@ class PDFProcessor:
                 f.write(uploaded_file.getbuffer())
             
             if progress_callback:
-                progress_callback("PDFを画像に変換中...", 0)
+                progress_callback("PDFを画像に変換中...", idx=0)
 
             images = convert_from_path(pdf_path, dpi=300)
             
+            not_detected_addresses = []
+            
             if progress_callback:
-                progress_callback(f"PDFのページ数: {len(images)}", 0)
+                progress_callback(f"PDFのページ数: {len(images)}", idx=0)
 
             for i, image in enumerate(images):
                 if progress_callback:
-                    progress_callback(f"{i+1}ページ目を処理中...", image=image, idx=1)
+                    progress_callback(f"{i+1}ページ目を処理中...", idx=1)
+                
+                if content_callback:
+                    content_callback(image)
 
                 image_path = os.path.join(tmp_dir, f"{base_name}_temp_image_{i+1}.jpg")
                 image.save(image_path, "JPEG")
@@ -65,6 +70,9 @@ class PDFProcessor:
                         description = address_data.get("説明", "")
                         if not pos_detected:
                             description += " (位置情報が見つかりませんでした)"
+                            not_detected_addresses.append(address)
+                            for addr in not_detected_addresses:
+                                progress_callback(f"{addr} の位置情報が見つかりませんでした。", idx=2)
                         new_row["説明"] = description
                         
                         df = pd.concat([df, pd.DataFrame([new_row])], ignore_index=True)
@@ -72,7 +80,8 @@ class PDFProcessor:
                 finally:
                     if os.path.exists(image_path):
                         os.remove(image_path)
-            
+            if progress_callback:
+                progress_callback(f"全ページ処理しました", idx=1)
             return df
             
         finally:

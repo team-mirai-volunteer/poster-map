@@ -22,25 +22,30 @@ def main():
     uploaded_file = st.file_uploader("PDFをアップロードしてください", type=["pdf"])
     
     if uploaded_file is not None:
-        placeholders = [st.empty() for _ in range(2)]
+        
+        placeholders = [st.empty() for _ in range(3)]
         content_placeholder = st.empty()
 
-        def progress_callback(message, image=None, idx=0):
-            if image is not None:
-                placeholders[idx].text(message)
-            else:
-                content_placeholder.image(image, caption=message, use_container_width=True)
-        
         try:
             if 'processed_df' not in st.session_state or st.session_state.get('last_uploaded_file') != uploaded_file.name:
                 with st.spinner("処理中..."):
-                    df = processor.process_pdf(uploaded_file, progress_callback)
+                    
+                    placeholders = [st.empty() for _ in range(3)]
+                    content_placeholder = st.empty()
+
+                    def progress_callback_message(message, idx=0):
+                        placeholders[idx].text(message)
+                        
+                    def viewer_callback_content(image):
+                        content_placeholder.image(image, use_container_width=True)
+                        
+                    df = processor.process_pdf(uploaded_file, progress_callback_message, viewer_callback_content)
                 st.session_state['processed_df'] = df
                 st.session_state['last_uploaded_file'] = uploaded_file.name
             else:
                 df = st.session_state['processed_df']
 
-            placeholders[1].text("処理が完了しました。しばらくするとダウンロードボタンが表示されます。")
+            placeholders[2].text("処理が完了しました。しばらくすると下の方にダウンロードボタンが表示されます。")
             content_placeholder.write(df)
 
             if not df.empty:
