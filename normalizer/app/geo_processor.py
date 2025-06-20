@@ -78,7 +78,7 @@ def get_gsi_latlng(address):
     except Exception:
         return None, None
 
-def get_best_latlng(address, api_key, gsi_check=True, distance_threshold=200, priority="gsi", logger=None):
+def get_best_latlng(index, address, api_key, gsi_check=True, distance_threshold=200, priority="gsi", logger=None):
     lat1, lon1 = get_gmap_latlng(address, api_key)
     lat2, lon2 = get_gsi_latlng(address) if gsi_check else (None, None)
 
@@ -93,7 +93,7 @@ def get_best_latlng(address, api_key, gsi_check=True, distance_threshold=200, pr
     dist = haversine(lat1, lon1, lat2, lon2)
     if dist >= distance_threshold:
         if logger:
-            pre_msg = f"警告: '{address}' のGoogle座標と国土地理院座標が {int(dist)}m ズレ。"
+            pre_msg = f"警告: {index}行目 '{address}' のGoogle座標と国土地理院座標が {int(dist)}m ズレ。"
             if priority == "gsi":
                 logger(pre_msg + "国土地理院APIの座標を採用します。")
             elif priority == "google":
@@ -102,7 +102,7 @@ def get_best_latlng(address, api_key, gsi_check=True, distance_threshold=200, pr
     # ズレが閾値未満ならGoogle優先
     return lat1, lon1, "google"
 
-def render_template(template_str, row, cache, full_api_address, api_key, sleep_msec, gsi_check, gsi_dist, priority, logger=None):
+def render_template(index, template_str, row, cache, full_api_address, api_key, sleep_msec, gsi_check, gsi_dist, priority, logger=None):
     def replacer(match):
         token = match.group(1)
         if token.isdigit():
@@ -110,7 +110,7 @@ def render_template(template_str, row, cache, full_api_address, api_key, sleep_m
             return clean(row[idx]) if idx < len(row) else ""
         elif token in ("lat", "long"):
             if "latlng" not in cache:
-                lat, lng, source = get_best_latlng(full_api_address, api_key, gsi_check, gsi_dist, priority, logger)
+                lat, lng, source = get_best_latlng(index, full_api_address, api_key, gsi_check, gsi_dist, priority, logger)
                 cache["latlng"] = (lat, lng)
                 cache["source"] = source
                 time.sleep(sleep_msec / 1000)
@@ -136,8 +136,8 @@ def process_csv_data(
     for idx, row in enumerate(csv_data, start=1):
         if progress_callback:
             progress_callback(idx, len(csv_data))
-        if log_callback:
-            log_callback(f"{idx}行目を処理中...")
+        #if log_callback:
+        #    log_callback(f"{idx}行目を処理中...")
 
         out_row = []
         cache = {}
@@ -162,7 +162,7 @@ def process_csv_data(
                 out_row.append(clean(normalized_address))
             else:
                 rendered = render_template(
-                    template, row, cache, full_api_address, api_key, sleep_msec, gsi_check, gsi_distance, priority, log_callback
+                    idx, template, row, cache, full_api_address, api_key, sleep_msec, gsi_check, gsi_distance, priority, log_callback
                 )
                 out_row.append(rendered)
 
