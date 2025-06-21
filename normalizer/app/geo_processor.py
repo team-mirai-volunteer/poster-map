@@ -136,8 +136,6 @@ def process_csv_data(
     for idx, row in enumerate(csv_data, start=1):
         if progress_callback:
             progress_callback(idx, len(csv_data))
-        #if log_callback:
-        #    log_callback(f"{idx}行目を処理中...")
 
         out_row = []
         cache = {}

@@ -65,22 +65,21 @@ addr_col_guess = ""
 name_col_guess = ""
 
 col_names = []
-if csv_file is not None:
+if csv_file is not None and df is not None:
     col_names = df.columns.tolist()
     pref_val, city_val = guess_pref_city_vals(col_names, df, filename)
     number_col_guess = next((c for c in col_names if "番号" in c or "No" in c or "NO" in c or "no" in c or "num" in c), col_names[0] if col_names else "")
     addr_col_guess = next((c for c in col_names if "住" in c), col_names[0] if col_names else "")
     name_col_guess = next((c for c in col_names if "名" in c), col_names[1] if len(col_names) > 1 else "")
-    # 都道府県名を推測する
     addr_right = extract_address_like_text_from_last_row(df)
     pref_val = get_prefecture_from_partial_address(city_val + addr_right)
 
 st.header("2. 設定を構成")
 pref_val = st.text_input("都道府県（prefecture: 固定値）", value=pref_val)
 city_val = st.text_input("市区町村（city: 固定値）", value=city_val)
-number_col = st.selectbox("番号列（number）", col_names, index=col_names.index(number_col_guess) if number_col_guess in col_names else 0)
-addr_col = st.selectbox("住所列（address）", col_names, index=col_names.index(addr_col_guess) if addr_col_guess in col_names else 0)
-name_col = st.selectbox("名称列（name）", col_names, index=col_names.index(name_col_guess) if name_col_guess in col_names else 0)
+number_col = st.selectbox("番号列（number）", col_names if col_names else [""], index=col_names.index(number_col_guess) if number_col_guess in col_names else 0)
+addr_col = st.selectbox("住所列（address）", col_names if col_names else [""], index=col_names.index(addr_col_guess) if addr_col_guess in col_names else 0)
+name_col = st.selectbox("名称列（name）", col_names if col_names else [""], index=col_names.index(name_col_guess) if name_col_guess in col_names else 0)
 
 output_candidates = ["number", "address", "name", "lat", "long"]
 default_outputs = ["number", "address", "name", "lat", "long"]
