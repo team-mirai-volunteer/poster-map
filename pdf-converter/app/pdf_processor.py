@@ -63,7 +63,8 @@ class PDFProcessor:
                         lat, lng, pos_detected = self.geocode_address(address)
                         
                         new_row = {}
-                        new_row["場所"] = address
+                        new_row["番号"] = len(df) + 1
+                        new_row["住所"] = address
                         new_row["緯度"] = lat
                         new_row["経度"] = lng
                         
@@ -73,7 +74,7 @@ class PDFProcessor:
                             not_detected_addresses.append(address)
                             for addr in not_detected_addresses:
                                 progress_callback(f"{addr} の位置情報が見つかりませんでした。", idx=2)
-                        new_row["説明"] = description
+                        new_row["名称等"] = description
                         
                         df = pd.concat([df, pd.DataFrame([new_row])], ignore_index=True)
                 

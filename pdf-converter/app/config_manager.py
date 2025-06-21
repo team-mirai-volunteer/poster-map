@@ -9,7 +9,7 @@ class ConfigManager:
         self.openrouter_api_key = os.environ.get('OPENROUTER_API_KEY')
         self.geospatial_url = "https://msearch.gsi.go.jp/address-search/AddressSearch?q="
         self.model_name = "gpt-4.1-mini"
-        self.csv_columns = ["場所", "説明", "緯度", "経度"]
+        self.csv_columns = ["番号", "住所", "名称等", "緯度", "経度"]
     
     def get_openai_client(self):
         if not self.openrouter_api_key:
