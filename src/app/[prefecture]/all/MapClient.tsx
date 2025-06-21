@@ -9,7 +9,7 @@ import { PinData, AreaList } from '@/lib/types';
 import { getPrefectureConfig } from '@/lib/prefecture-config';
 import { PrefectureData } from '@/lib/server-data';
 
-const Map = dynamic(() => import('@/components/Map'), { ssr: false });
+const LeafletMap = dynamic(() => import('@/components/Map'), { ssr: false });
 
 function getPinNote(note: string | null): string {
   return note == null ? "なし" : note;
@@ -36,7 +36,6 @@ async function loadBoardPins(pins: PinData[], layer: any, areaList: AreaList, L:
     `);
   });
 }
-
 
 function MapPageContent({ prefecture, prefectureData }: { prefecture: string; prefectureData: PrefectureData }) {
   const searchParams = useSearchParams();
@@ -113,7 +112,8 @@ function MapPageContent({ prefecture, prefectureData }: { prefecture: string; pr
         L.circle(e.latlng, radius).addTo(mapInstance);
       });
 
-      mapInstance.on('locationerror', setInitialView);
+      // mapInstance.on('locationerror', setInitialView);
+      setInitialView();
       mapInstance.locate({ setView: false, maxZoom: 14 });
 
       try {
@@ -191,7 +191,7 @@ function MapPageContent({ prefecture, prefectureData }: { prefecture: string; pr
           }
         }
       `}</style>
-      <Map onMapReady={setMapInstance} />
+      <LeafletMap onMapReady={setMapInstance} />
     </>
   );
 }
