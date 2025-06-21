@@ -2,7 +2,12 @@ import streamlit as st
 import pandas as pd
 import io
 import os
-from geo_processor import *
+import requests
+from geo_processor import (
+    process_csv_data,
+    extract_address_like_text_from_last_row,
+    get_prefecture_from_partial_address
+)
 
 st.set_page_config(page_title="CSV正規化ツール", layout="wide")
 
@@ -90,19 +95,22 @@ output_columns = st.multiselect(
 )
 
 st.header("3. 処理を実行")
-log_lines = []
+
+if 'log_lines' not in st.session_state:
+    st.session_state.log_lines = []
+if 'warning_count' not in st.session_state:
+    st.session_state.warning_count = 0
+
 log_box = st.empty()
-warning_count = 0
 progress_bar = st.progress(0)
 status_text = st.empty()
 
 def log_callback(msg):
-    global warning_count
     msg = str(msg)
-    log_lines.append(msg)
+    st.session_state.log_lines.append(msg)
     if msg.startswith("警告"):
-        warning_count += 1
-    log_box.text_area("ログ", "\n".join(log_lines[-500:]), height=300, key=f"log-{len(log_lines)}")
+        st.session_state.warning_count += 1
+    log_box.text_area("ログ", "\n".join(st.session_state.log_lines[-500:]), height=300, key=f"log-{len(st.session_state.log_lines)}")
 
 def progress_callback(idx, total):
     progress_bar.progress(idx / total)
@@ -110,6 +118,10 @@ def progress_callback(idx, total):
 
 if st.button("CSV正規化を実行"):
     if df is not None:
+        if "lat" in output_columns or "long" in output_columns:
+            if not os.environ.get("GOOGLE_MAPS_API_KEY"):
+                st.error("Google Maps APIキーが設定されていません。環境変数 GOOGLE_MAPS_API_KEY を設定してください。")
+                st.stop()
         try:
             colmap = {col: idx for idx, col in enumerate(df.columns)}
             config = {
@@ -163,8 +175,8 @@ if st.button("CSV正規化を実行"):
             status_text.text("完了")
             info_placeholder.empty()
             msg = "処理完了！出力データをダウンロードできます"
-            if warning_count > 0:
-                msg += f"。変換中に {warning_count} 件の警告が発生しました。"
+            if st.session_state.warning_count > 0:
+                msg += f"。変換中に {st.session_state.warning_count} 件の警告が発生しました。"
             st.success(msg)
             
             # ---出力プレビューもインデックス1始まりで---
@@ -179,7 +191,14 @@ if st.button("CSV正規化を実行"):
                 file_name=f"{city_val}_normalized.csv",
                 mime="text/csv"
             )
+        except requests.exceptions.RequestException as e:
+            st.error(f"API通信エラー: {str(e)}")
+            st.info("ネットワーク接続を確認してください。")
+        except ValueError as e:
+            st.error(f"データ処理エラー: {str(e)}")
+            st.info("CSVデータの形式を確認してください。")
         except Exception as e:
-            st.error(f"エラー: {str(e)}")
+            st.error(f"予期しないエラー: {str(e)}")
+            st.info("詳細はログを確認してください。")
     else:
         st.warning("CSVファイルをアップロードしてください。")

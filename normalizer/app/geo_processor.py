@@ -54,26 +54,43 @@ def get_gmap_latlng(address, api_key):
     url = "https://maps.googleapis.com/maps/api/geocode/json"
     params = {"address": address, "key": api_key, "language": "ja"}
     try:
-        res = requests.get(url, params=params)
+        res = requests.get(url, params=params, timeout=10)
         data = res.json()
         status = data.get("status")
         if status == "OK":
             loc = data["results"][0]["geometry"]["location"]
             return loc["lat"], loc["lng"]
-        else:
+        elif status == "ZERO_RESULTS":
             return None, None
+        elif status == "OVER_QUERY_LIMIT":
+            raise Exception("Google Maps APIのクォータを超過しました")
+        elif status == "REQUEST_DENIED":
+            raise Exception("Google Maps APIリクエストが拒否されました。APIキーを確認してください")
+        else:
+            raise Exception(f"Google Maps APIエラー: {status}")
+    except requests.exceptions.Timeout:
+        raise Exception("Google Maps APIのタイムアウト")
+    except requests.exceptions.RequestException as e:
+        raise Exception(f"Google Maps API通信エラー: {str(e)}")
     except Exception:
-        return None, None
+        raise
 
 def get_gsi_latlng(address):
     url = "https://msearch.gsi.go.jp/address-search/AddressSearch"
     params = {"q": address}
     try:
-        res = requests.get(url, params=params)
+        res = requests.get(url, params=params, timeout=10)
+        res.raise_for_status()
         result = res.json()
-        if result and "geometry" in result[0]:
+        if result and len(result) > 0 and isinstance(result[0], dict) and "geometry" in result[0]:
+            if "coordinates" not in result[0]["geometry"]:
+                return None, None
             lon, lat = result[0]["geometry"]["coordinates"]
+            if not (20 <= lat <= 46 and 122 <= lon <= 154):
+                return None, None
             return lat, lon
+        return None, None
+    except requests.exceptions.Timeout:
         return None, None
     except Exception:
         return None, None
@@ -167,7 +184,7 @@ def process_csv_data(
         results.append(out_row)
 
     if log_callback:
-        log_callback(f"完了")
+        log_callback("完了")
 
     return results
 
@@ -178,7 +195,7 @@ def get_prefecture_from_partial_address(partial_address: str) -> str:
     }
 
     try:
-        response = requests.get(url, params=params)
+        response = requests.get(url, params=params, timeout=10)
         response.raise_for_status()
         results = response.json()
         if not results:
