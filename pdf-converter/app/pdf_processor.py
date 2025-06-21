@@ -6,7 +6,7 @@ import urllib.parse
 import requests
 import pandas as pd
 from pdf2image import convert_from_path
-from typing import List, Dict, Any, Tuple, Optional
+from typing import List, Dict, Tuple, Optional
 import os
 
 class PDFProcessor:
@@ -82,7 +82,7 @@ class PDFProcessor:
                     if os.path.exists(image_path):
                         os.remove(image_path)
             if progress_callback:
-                progress_callback(f"全ページ処理しました", idx=1)
+                progress_callback("全ページ処理しました", idx=1)
             return df
             
         finally:
