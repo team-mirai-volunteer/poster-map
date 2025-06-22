@@ -127,7 +127,7 @@ def log_callback(msg):
     st.session_state.log_lines.append(msg)
     if msg.startswith("警告"):
         st.session_state.warning_count += 1
-    log_box.text_area("ログ", "\n".join(st.session_state.log_lines[-500:]), height=300, key=f"log-{len(st.session_state.log_lines)}")
+    log_box.text_area("ログ", "\n".join(str(line) for line in st.session_state.log_lines[-500:]), height=300, key=f"log-{len(st.session_state.log_lines)}")
 
 def progress_callback(idx, total):
     progress_bar.progress(idx / total)

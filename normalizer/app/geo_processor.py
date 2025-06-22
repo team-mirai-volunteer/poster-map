@@ -296,7 +296,7 @@ def process_csv_data(
 
         for col_name in header:
             if col_name == "note":
-                out_row.append("".join(note_list))
+                out_row.append("".join(str(item) for item in note_list))
             elif col_name == "address":
                 out_row.append(clean(normalized_address))
             elif col_name in format_config:
