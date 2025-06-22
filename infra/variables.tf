@@ -13,3 +13,9 @@ variable "region" {
   type        = string
   default     = "asia-northeast1"
 }
+
+variable "openrouter_api_key" {
+  description = "OpenRouter API Key for PDF converter"
+  type        = string
+  sensitive   = true
+}

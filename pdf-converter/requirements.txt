@@ -1,0 +1,6 @@
+pandas
+requests
+streamlit
+pdf2image
+openai
+python-dotenv

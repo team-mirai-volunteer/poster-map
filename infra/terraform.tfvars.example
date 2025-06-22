@@ -4,3 +4,6 @@
 project_id     = "your-gcp-project-id"
 project_number = "your-gcp-project-number"
 region         = "asia-northeast1"
+
+# PDF Converter variables
+openrouter_api_key = "your-openrouter-api-key"
