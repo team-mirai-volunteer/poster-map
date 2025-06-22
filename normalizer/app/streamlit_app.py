@@ -16,13 +16,29 @@ st.sidebar.title("設定")
 sleep_msec = st.sidebar.number_input("APIリクエスト間隔（ミリ秒）", min_value=0, max_value=5000, value=200, step=10)
 normalize_digits = st.sidebar.checkbox("漢数字をアラビア数字に変換", value=False)
 st.sidebar.markdown("---")
-st.sidebar.subheader("2重APIチェック設定")
-gsi_check = st.sidebar.checkbox("Google＋国土地理院API両方を使う", value=True)
-gsi_distance = st.sidebar.number_input("座標ズレ閾値（メートル）", value=200, min_value=0, max_value=10000, step=10)
-priority = st.sidebar.selectbox("閾値超時に優先するAPI", options=["gsi", "google"], format_func=lambda x: "国土地理院" if x=="gsi" else "Google")
+st.sidebar.subheader("座標検証設定")
+mode = st.sidebar.selectbox(
+    "検証モード", 
+    options=["distance", "reverse_geocode"], 
+    format_func=lambda x: "距離チェック" if x=="distance" else "逆引きチェック",
+    help="距離チェック：Google APIと国土地理院APIの座標を比較\n逆引きチェック：逆ジオコーディングで住所を検証"
+)
+
+if mode == "distance":
+    st.sidebar.markdown("**距離チェック設定**")
+    gsi_check = st.sidebar.checkbox("Google＋国土地理院API両方を使う", value=True)
+    gsi_distance = st.sidebar.number_input("座標ズレ閾値（メートル）", value=200, min_value=0, max_value=10000, step=10)
+    priority = st.sidebar.selectbox("閾値超時に優先するAPI", options=["gsi", "google"], format_func=lambda x: "国土地理院" if x=="gsi" else "Google")
+    reverse_geocode_check = False
+else:
+    st.sidebar.markdown("**逆引きチェック設定**")
+    reverse_geocode_check = st.sidebar.checkbox("逆ジオコーディングチェックを有効化", value=True, help="Google APIで取得した座標を逆引きして住所の一致を確認")
+    gsi_check = True
+    gsi_distance = 200
+    priority = "gsi"
 
 st.title("📍 CSV正規化ツール")
-st.write("ポスター掲示場所等のCSVを正規化し、Google Maps APIを使って緯度経度を付与します。国土地理院APIで2重チェックできます。")
+st.write("ポスター掲示場所等のCSVを正規化し、Google Maps APIを使って緯度経度を付与します。距離チェックまたは逆引きチェックで座標の品質を検証できます。")
 
 st.header("1. CSVファイルをアップロード")
 csv_file = st.file_uploader("CSVファイルを選択してください", type=["csv"])
@@ -86,12 +102,13 @@ number_col = st.selectbox("番号列（number）", col_names if col_names else [
 addr_col = st.selectbox("住所列（address）", col_names if col_names else [""], index=col_names.index(addr_col_guess) if addr_col_guess in col_names else 0)
 name_col = st.selectbox("名称列（name）", col_names if col_names else [""], index=col_names.index(name_col_guess) if name_col_guess in col_names else 0)
 
-output_candidates = ["number", "address", "name", "lat", "long"]
-default_outputs = ["number", "address", "name", "lat", "long"]
+output_candidates = ["number", "address", "name", "lat", "long", "note"]
+default_outputs = ["number", "address", "name", "lat", "long", "note"]
 output_columns = st.multiselect(
     "出力する列を選択してください",
     output_candidates,
-    default=default_outputs
+    default=default_outputs,
+    help="note列：座標の品質情報（怪しい場合に「緯度経度は怪しい」と表示）"
 )
 
 st.header("3. 処理を実行")
@@ -158,7 +175,9 @@ if st.button("CSV正規化を実行"):
                 log_callback=log_callback,
                 gsi_check=gsi_check,
                 gsi_distance=int(gsi_distance),
-                priority=priority
+                priority=priority,
+                mode=mode,
+                reverse_geocode_check=reverse_geocode_check
             )
             
             output_header = ["prefecture", "city"] + list(output_columns)
