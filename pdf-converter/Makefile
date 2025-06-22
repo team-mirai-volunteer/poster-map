@@ -1,4 +1,4 @@
-.PHONY: build run-local deploy setup-secrets clean
+.PHONY: build push run-local deploy setup-secrets clean
 
 PROJECT_ID ?= $(shell gcloud config get-value project)
 REGION ?= asia-northeast1
@@ -6,7 +6,11 @@ SERVICE_NAME = pdf-converter
 IMAGE_NAME = $(REGION)-docker.pkg.dev/$(PROJECT_ID)/$(SERVICE_NAME)/$(SERVICE_NAME)
 
 build:
-	docker build -t $(SERVICE_NAME) .
+	docker build --platform linux/amd64 -t $(SERVICE_NAME) .
+	docker tag $(SERVICE_NAME) $(IMAGE_NAME)
+
+push: build
+	docker push $(IMAGE_NAME)
 
 run-local:
 	@if [ -z "$(OPENROUTER_API_KEY)" ]; then \
@@ -24,10 +28,6 @@ setup-secrets:
 	echo "$$api_key" | gcloud secrets create openrouter-api-key --data-file=-
 
 deploy:
-	@echo "Building and deploying to Cloud Run..."
-	gcloud builds submit --tag $(IMAGE_NAME) \
-		--build-arg BUILDKIT_INLINE_CACHE=1
-	
 	gcloud run deploy $(SERVICE_NAME) \
 		--image $(IMAGE_NAME) \
 		--platform managed \
@@ -36,6 +36,7 @@ deploy:
 		--memory 2Gi \
 		--cpu 2 \
 		--timeout 3600 \
+		--port 8501 \
 		--set-secrets OPENROUTER_API_KEY=openrouter-api-key:latest
 
 clean:

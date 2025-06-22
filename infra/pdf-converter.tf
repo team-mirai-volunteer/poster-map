@@ -5,12 +5,39 @@ resource "google_service_account" "pdf_converter" {
   description  = "Service account for PDF converter Cloud Run service"
 }
 
-resource "google_secret_manager_secret_iam_member" "pdf_converter_openrouter_key" {
+# Create the Secret Manager secret
+resource "google_secret_manager_secret" "openrouter_api_key" {
   secret_id = "openrouter-api-key"
+  
+  replication {
+    auto {}
+  }
+}
+
+# Create a secret version with the actual API key
+resource "google_secret_manager_secret_version" "openrouter_api_key" {
+  secret      = google_secret_manager_secret.openrouter_api_key.id
+  secret_data = var.openrouter_api_key
+}
+
+resource "google_secret_manager_secret_iam_member" "pdf_converter_openrouter_key" {
+  secret_id = google_secret_manager_secret.openrouter_api_key.secret_id
   role      = "roles/secretmanager.secretAccessor"
   member    = "serviceAccount:${google_service_account.pdf_converter.email}"
   
-  depends_on = [google_service_account.pdf_converter]
+  depends_on = [
+    google_service_account.pdf_converter,
+    google_secret_manager_secret.openrouter_api_key
+  ]
+}
+
+# Grant the default compute service account access to the secret
+resource "google_secret_manager_secret_iam_member" "compute_sa_openrouter_key" {
+  secret_id = google_secret_manager_secret.openrouter_api_key.secret_id
+  role      = "roles/secretmanager.secretAccessor"
+  member    = "serviceAccount:${var.project_number}-compute@developer.gserviceaccount.com"
+  
+  depends_on = [google_secret_manager_secret.openrouter_api_key]
 }
 
 resource "google_artifact_registry_repository" "pdf_converter" {
@@ -22,60 +49,3 @@ resource "google_artifact_registry_repository" "pdf_converter" {
   depends_on = [google_project_service.apis]
 }
 
-resource "google_cloud_run_service" "pdf_converter" {
-  name     = "pdf-converter"
-  location = var.region
-
-  template {
-    spec {
-      service_account_name = google_service_account.pdf_converter.email
-      
-      containers {
-        image = "${var.region}-docker.pkg.dev/${var.project_id}/pdf-converter/pdf-converter:latest"
-        
-        resources {
-          limits = {
-            cpu    = "2000m"
-            memory = "2Gi"
-          }
-        }
-        
-        env {
-          name = "OPENROUTER_API_KEY"
-          value_from {
-            secret_key_ref {
-              name = "openrouter-api-key"
-              key  = "latest"
-            }
-          }
-        }
-      }
-      
-      timeout_seconds = 3600
-    }
-    
-    metadata {
-      annotations = {
-        "autoscaling.knative.dev/maxScale" = "10"
-        "run.googleapis.com/cpu-throttling" = "false"
-      }
-    }
-  }
-
-  traffic {
-    percent         = 100
-    latest_revision = true
-  }
-
-  depends_on = [
-    google_service_account.pdf_converter,
-    google_artifact_registry_repository.pdf_converter
-  ]
-}
-
-resource "google_cloud_run_service_iam_member" "pdf_converter_public" {
-  service  = google_cloud_run_service.pdf_converter.name
-  location = google_cloud_run_service.pdf_converter.location
-  role     = "roles/run.invoker"
-  member   = "allUsers"
-}
