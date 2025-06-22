@@ -43,7 +43,10 @@ def normalize_address_digits(addr):
     return re.sub(r"([〇一二三四五六七八九十]+)(丁目|番|号)", replacer, addr).strip().strip("　")
 
 def clean(val):
-    return val.strip().strip("　") if isinstance(val, str) else val
+    if isinstance(val, str):
+        return val.strip().strip("　")
+    else:
+        return str(val) if val is not None else ""
 
 def haversine(lat1, lon1, lat2, lon2):
     R = 6371000
@@ -236,7 +239,7 @@ def render_template(index, template_str, row, cache, full_api_address, api_key, 
         token = match.group(1)
         if token.isdigit():
             idx = int(token) - 1
-            return clean(row[idx]) if idx < len(row) else ""
+            return str(clean(row[idx])) if idx < len(row) else ""
         elif token in ("lat", "long"):
             if "latlng" not in cache:
                 # lat, lng をキャッシュ
