@@ -134,6 +134,9 @@ def progress_callback(idx, total):
     status_text.text(f"処理中: {idx} / {total} 行")
 
 if st.button("CSV正規化を実行"):
+    st.session_state.log_lines = []
+    st.session_state.warning_count = 0
+    
     if df is not None:
         if "lat" in output_columns or "long" in output_columns:
             if not os.environ.get("GOOGLE_MAPS_API_KEY"):
