@@ -19,6 +19,13 @@ async function loadBoardPins(pins: PinData[], layer: any, areaList: AreaList, L:
   const filteredPins = status !== null ? pins.filter(item => item.status === status) : pins;
   
   filteredPins.forEach(pin => {
+    const lat = Number(pin.lat);
+    const lng = Number(pin.long);
+
+    if (isNaN(lat) || isNaN(lng)) {
+      console.warn(`Invalid pin lat/lng:`, pin);
+      return;
+    }
     const marker = L.circleMarker([pin.lat, pin.long], {
       radius: 8,
       color: 'black',
