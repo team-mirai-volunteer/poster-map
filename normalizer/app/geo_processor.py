@@ -7,9 +7,12 @@ import os
 import pandas as pd
 
 # .envから環境変数をロード（/app/.env優先）
-from dotenv import load_dotenv
-load_dotenv('/app/.env')
-load_dotenv()
+try:
+    from dotenv import load_dotenv
+    load_dotenv('/app/.env')
+    load_dotenv()
+except ImportError:
+    pass
 
 KANJI_NUMERAL_MAP = {
     "〇": 0, "一": 1, "二": 2, "三": 3, "四": 4,
@@ -40,7 +43,10 @@ def normalize_address_digits(addr):
     return re.sub(r"([〇一二三四五六七八九十]+)(丁目|番|号)", replacer, addr).strip().strip("　")
 
 def clean(val):
-    return val.strip().strip("　") if isinstance(val, str) else val
+    if isinstance(val, str):
+        return val.strip().strip("　")
+    else:
+        return str(val) if val is not None else ""
 
 def haversine(lat1, lon1, lat2, lon2):
     R = 6371000
@@ -95,43 +101,151 @@ def get_gsi_latlng(address):
     except Exception:
         return None, None
 
-def get_best_latlng(index, address, api_key, gsi_check=True, distance_threshold=200, priority="gsi", logger=None):
+def reverse_geocode_google(lat, lng, api_key):
+    url = "https://maps.googleapis.com/maps/api/geocode/json"
+    params = {"latlng": f"{lat},{lng}", "key": api_key, "language": "ja"}
+    try:
+        res = requests.get(url, params=params)
+        data = res.json()
+        if data.get("status") == "OK":
+            return data["results"][0]["formatted_address"]
+        else:
+            return None
+    except Exception:
+        return None
+
+def normalize_japanese_address(addr):
+    if not addr:
+        return ""
+    addr = unicodedata.normalize("NFKC", addr)
+    addr = re.sub(r'日本|JAPAN', '', addr, flags=re.IGNORECASE)
+    addr = re.sub(r'〒\d{3}-?\d{4}', '', addr)
+    addr = re.sub(r'^[\s、,．.]+', '', addr)
+    addr = re.sub(r'\s+', '', addr)
+    addr = re.sub(r'[‐－―ー−]', '-', addr)
+    addr = addr.replace('番地', '番')
+    addr = normalize_address_digits(addr)
+    addr = re.sub(r'(先|付近|階|Ｆ|号室|室|[A-Za-zａ-ｚＡ-Ｚ]{1,10})$', '', addr)
+
+    # 丁目+番パターン
+    m = re.search(r'^(.+?)(\d+)丁目(\d+)番', addr)
+    if m:
+        town = m.group(1)
+        chome = m.group(2)
+        ban = m.group(3)
+        return f'{town}{chome}丁目{ban}番'
+
+    # 丁目+ハイフン+番地
+    m = re.search(r'^(.+?)(\d+)丁目(\d+)-', addr)
+    if m:
+        town = m.group(1)
+        chome = m.group(2)
+        ban = m.group(3)
+        return f'{town}{chome}丁目{ban}番'
+
+    # 町名+ハイフン+数字（丁目なし）
+    m = re.search(r'^(.+?)(\d+)-', addr)
+    if m:
+        town = m.group(1)
+        ban = m.group(2)
+        return f'{town}{ban}番'
+
+    # 丁目だけ
+    m = re.search(r'^(.+?)(\d+)丁目', addr)
+    if m:
+        town = m.group(1)
+        chome = m.group(2)
+        return f'{town}{chome}丁目'
+
+    # 番だけ
+    m = re.search(r'^(.+?)(\d+)番', addr)
+    if m:
+        town = m.group(1)
+        ban = m.group(2)
+        return f'{town}{ban}番'
+
+    m = re.match(r'^([^\d]+)', addr)
+    if m:
+        return m.group(1)
+    return addr
+
+def addresses_roughly_match(addr1, addr2, threshold=None):
+    core1 = normalize_japanese_address(addr1)
+    core2 = normalize_japanese_address(addr2)
+    return core1 == core2
+
+def get_best_latlng(index, address, api_key, gsi_check=True, distance_threshold=200, priority="gsi", 
+                    mode="distance", reverse_geocode_check=False, note_out=None, logger=None):
     lat1, lon1 = get_gmap_latlng(address, api_key)
-    lat2, lon2 = get_gsi_latlng(address) if gsi_check else (None, None)
+    lat2, lon2 = get_gsi_latlng(address)
 
     if lat1 is None and lat2 is None:
         if logger: logger(f"警告: '{address}' の座標取得に失敗しました。")
+        if note_out is not None:
+            note_out.append("緯度経度は怪しい")
         return None, None, "none"
-    if lat1 is not None and lat2 is None:
+
+    # 逆ジオコーディングモード
+    if mode == "reverse_geocode" and reverse_geocode_check and lat1 is not None:
+        rev_addr = reverse_geocode_google(lat1, lon1, api_key)
+        suspicious = False
+        if rev_addr is not None:
+            if not addresses_roughly_match(address, rev_addr):
+                if logger:
+                    logger(f"警告: {index}行目 '{address}' Google座標の逆引きが不一致'{rev_addr}' → 国土地理院APIを採用します。")
+                suspicious = True
+        else:
+            suspicious = True  # 逆ジオコーディング失敗も怪しいとみなす
+        if suspicious:
+            if note_out is not None:
+                note_out.append("緯度経度は怪しい")
+            if lat2 is not None:
+                return lat2, lon2, "gsi"
+            else:
+                return None, None, "none"
+        else:
+            return lat1, lon1, "google"
+
+    # 距離チェックモード（従来方式）
+    if mode == "distance":
+        if lat1 is not None and lat2 is None:
+            return lat1, lon1, "google"
+        if lat2 is not None and lat1 is None:
+            return lat2, lon2, "gsi"
+        dist = haversine(lat1, lon1, lat2, lon2)
+        if gsi_check and dist >= distance_threshold:
+            if logger:
+                pre_msg = f"警告: {index}行目 '{address}' のGoogle座標と国土地理院座標が {int(dist)}m ズレ。"
+                if priority == "gsi":
+                    logger(pre_msg + "国土地理院APIの座標を採用します。")
+                elif priority == "google":
+                    logger(pre_msg + "Google座標を採用します。")
+            if note_out is not None:
+                note_out.append("緯度経度は怪しい")
+            return (lat2, lon2, "gsi") if priority == "gsi" else (lat1, lon1, "google")
         return lat1, lon1, "google"
-    if lat2 is not None and lat1 is None:
+
+    if lat1 is not None:
+        return lat1, lon1, "google"
+    if lat2 is not None:
         return lat2, lon2, "gsi"
+    if note_out is not None:
+        note_out.append("緯度経度は怪しい")
+    return None, None, "none"
 
-    dist = haversine(lat1, lon1, lat2, lon2)
-    if dist >= distance_threshold:
-        if logger:
-            pre_msg = f"警告: {index}行目 '{address}' のGoogle座標と国土地理院座標が {int(dist)}m ズレ。"
-            if priority == "gsi":
-                logger(pre_msg + "国土地理院APIの座標を採用します。")
-            elif priority == "google":
-                logger(pre_msg + "Google座標を採用します。")
-        return (lat2, lon2, "gsi") if priority == "gsi" else (lat1, lon1, "google")
-    # ズレが閾値未満ならGoogle優先
-    return lat1, lon1, "google"
-
-def render_template(index, template_str, row, cache, full_api_address, api_key, sleep_msec, gsi_check, gsi_dist, priority, logger=None):
+def render_template(index, template_str, row, cache, full_api_address, api_key, sleep_msec, 
+                    gsi_check, gsi_dist, priority, mode, reverse_geocode_check, logger=None):
     def replacer(match):
         token = match.group(1)
         if token.isdigit():
             idx = int(token) - 1
-            return clean(row[idx]) if idx < len(row) else ""
+            return str(clean(row[idx])) if idx < len(row) else ""
         elif token in ("lat", "long"):
             if "latlng" not in cache:
-                lat, lng, source = get_best_latlng(index, full_api_address, api_key, gsi_check, gsi_dist, priority, logger)
-                cache["latlng"] = (lat, lng)
-                cache["source"] = source
-                time.sleep(sleep_msec / 1000)
-            lat, lng = cache["latlng"]
+                # lat, lng をキャッシュ
+                # note_outはここでは使わない（get_best_latlngはprocess_csv_dataで実行）
+                pass
+            lat, lng = cache.get("latlng", (None, None))
             return str(clean(lat if token == "lat" else lng))
         else:
             return ""
@@ -139,10 +253,12 @@ def render_template(index, template_str, row, cache, full_api_address, api_key, 
 
 def process_csv_data(
     csv_data, config, progress_callback=None, log_callback=None,
-    gsi_check=True, gsi_distance=200, priority="gsi"
+    gsi_check=True, gsi_distance=200, priority="gsi", mode="distance", reverse_geocode_check=False
 ):
     format_config = config["format"]
     header = list(format_config.keys())
+    if "note" not in header:
+        header.append("note")
 
     api_needed = any("{lat}" in v or "{long}" in v for v in format_config.values())
     api_key = os.environ.get("GOOGLE_MAPS_API_KEY") if api_needed else None
@@ -156,6 +272,7 @@ def process_csv_data(
 
         out_row = []
         cache = {}
+        note_list = []
 
         address_token = format_config.get("address", "")
         if "{" in address_token and "}" in address_token:
@@ -172,14 +289,27 @@ def process_csv_data(
 
         full_api_address = f"{format_config['prefecture']}{format_config['city']}{normalized_address}"
 
-        for col_name, template in format_config.items():
-            if col_name == "address":
+        # 緯度経度（note_listを渡してget_best_latlng内でnote列をセット）
+        lat, lng, source = get_best_latlng(
+            idx, full_api_address, api_key, gsi_check, gsi_distance, priority, mode, reverse_geocode_check, note_list, log_callback
+        )
+        cache["latlng"] = (lat, lng)
+        cache["source"] = source
+        time.sleep(sleep_msec / 1000)
+
+        for col_name in header:
+            if col_name == "note":
+                out_row.append("".join(str(item) for item in note_list))
+            elif col_name == "address":
                 out_row.append(clean(normalized_address))
-            else:
+            elif col_name in format_config:
                 rendered = render_template(
-                    idx, template, row, cache, full_api_address, api_key, sleep_msec, gsi_check, gsi_distance, priority, log_callback
+                    idx, format_config[col_name], row, cache, full_api_address, api_key, sleep_msec, 
+                    gsi_check, gsi_distance, priority, mode, reverse_geocode_check, log_callback
                 )
                 out_row.append(rendered)
+            else:
+                out_row.append("")
 
         results.append(out_row)
 
