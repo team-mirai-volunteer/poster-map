@@ -26,7 +26,7 @@ async function loadBoardPins(pins: PinData[], layer: any, areaList: AreaList, L:
       console.warn(`Invalid pin lat/lng:`, pin);
       return;
     }
-    const marker = L.circleMarker([pin.lat, pin.long], {
+    const marker = L.circleMarker([lat, lng], {
       radius: 8,
       color: 'black',
       weight: 1,
@@ -119,8 +119,10 @@ function MapPageContent({ prefecture, prefectureData }: { prefecture: string; pr
         L.circle(e.latlng, radius).addTo(mapInstance);
       });
 
-      // mapInstance.on('locationerror', setInitialView);
-      setInitialView();
+      mapInstance.on('locationerror', (e: any) => {
+        console.warn('位置情報の取得に失敗しました:', e.message);
+        setInitialView();
+      });
       mapInstance.locate({ setView: false, maxZoom: 14 });
 
       try {
