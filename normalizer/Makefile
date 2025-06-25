@@ -57,6 +57,7 @@ deploy: build-linux push
 		--port 8501 \
 		--memory 1Gi \
 		--cpu 1 \
+		--timeout 3600 \
 		--max-instances 10 \
 		--service-account=$(SA_NORMALIZER)
 
