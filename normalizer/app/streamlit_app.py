@@ -1,211 +1,226 @@
 import streamlit as st
 import pandas as pd
-import csv
 import io
 import os
-from typing import Dict, List, Any
-from dotenv import load_dotenv
-
-from geo_processor import process_csv_data, create_config_from_params
-from config_manager import ConfigManager
-
-# Load from .env file in the app directory first, then from environment
-load_dotenv('/app/.env')
-load_dotenv()
-
-st.set_page_config(
-    page_title="CSV正規化ツール",
-    page_icon="📍",
-    layout="wide"
+import requests
+from geo_processor import (
+    process_csv_data,
+    extract_address_like_text_from_last_row,
+    get_prefecture_from_partial_address
 )
 
-def main():
-    st.title("📍 CSV正規化ツール")
-    st.markdown("ポスター掲示場情報のCSVを正規化し、Google Mapsを使って緯度経度を付与します。")
-    
-    config_manager = ConfigManager()
-    
-    with st.sidebar:
-        st.header("設定")
-        
-        api_key = os.getenv("GOOGLE_MAPS_API_KEY", "")
-        
-        sleep_ms = st.slider(
-            "APIコール間隔 (ミリ秒)",
-            min_value=100,
-            max_value=2000,
-            value=200,
-            step=50,
-            help="Google Maps APIの利用制限を避けるための待機時間"
-        )
-        
-        normalize_digits = st.checkbox(
-            "漢数字をアラビア数字に変換",
-            value=False,
-            help="住所の漢数字（二丁目など）をアラビア数字（2丁目）に変換します"
-        )
-    
-    col1, col2 = st.columns([1, 1])
-    
-    with col1:
-        st.header("1. CSVファイルをアップロード")
-        uploaded_file = st.file_uploader(
-            "CSVファイルを選択してください",
-            type=['csv'],
-            help="ポスター掲示場情報が含まれるCSVファイルをアップロードしてください"
-        )
-        
-        if uploaded_file is not None:
-            try:
-                content = uploaded_file.read().decode('utf-8')
-                csv_reader = csv.reader(io.StringIO(content))
-                csv_data = list(csv_reader)
-                
-                if len(csv_data) > 0:
-                    st.success(f"✅ CSVファイルを読み込みました ({len(csv_data)-1}行のデータ)")
-                    
-                    df_preview = pd.DataFrame(csv_data[1:], columns=csv_data[0])
-                    st.subheader("データプレビュー")
-                    st.dataframe(df_preview.head(10), use_container_width=True)
-                    
-                    st.session_state['csv_data'] = csv_data
-                    st.session_state['columns'] = csv_data[0]
-                else:
-                    st.error("CSVファイルが空です")
-            except Exception as e:
-                st.error(f"CSVファイルの読み込みに失敗しました: {str(e)}")
-    
-    with col2:
-        st.header("2. 設定を構成")
-        
-        if 'csv_data' in st.session_state:
-            columns = st.session_state['columns']
-            
-            prefecture = st.text_input("都道府県", value="東京都")
-            city = st.text_input("市区町村", value="中央区")
-            
-            st.subheader("列マッピング")
-            st.markdown("CSVの各列をどのフィールドにマッピングするかを選択してください")
-            
-            column_mapping = {}
-            
-            number_col = st.selectbox(
-                "番号列",
-                options=range(1, len(columns) + 1),
-                format_func=lambda x: f"{x}: {columns[x-1]}",
-                index=1 if len(columns) > 1 else 0,
-                help="掲示場番号が含まれる列を選択"
-            )
-            column_mapping['number'] = number_col
-            
-            address_col = st.selectbox(
-                "住所列",
-                options=range(1, len(columns) + 1),
-                format_func=lambda x: f"{x}: {columns[x-1]}",
-                index=2 if len(columns) > 2 else 0,
-                help="住所が含まれる列を選択"
-            )
-            column_mapping['address'] = address_col
-            
-            name_col = st.selectbox(
-                "名称列",
-                options=range(1, len(columns) + 1),
-                format_func=lambda x: f"{x}: {columns[x-1]}",
-                index=3 if len(columns) > 3 else 0,
-                help="掲示場名称が含まれる列を選択"
-            )
-            column_mapping['name'] = name_col
-            
-            column_mapping['lat'] = 'lat'
-            column_mapping['long'] = 'long'
-            
-            st.session_state['config'] = {
-                'prefecture': prefecture,
-                'city': city,
-                'column_mapping': column_mapping,
-                'api_key': api_key,
-                'sleep_ms': sleep_ms,
-                'normalize_digits': normalize_digits
-            }
-    
-    if 'csv_data' in st.session_state and 'config' in st.session_state:
-        st.header("3. 処理を実行")
-        
-        config_data = st.session_state['config']
-        
-        if not config_data['api_key']:
-            st.error("⚠️ Google Maps APIキーが環境変数に設定されていません。")
-        
-        if st.button("🚀 CSV正規化を実行", type="primary", use_container_width=True):
-            if not config_data['api_key']:
-                st.error("Google Maps APIキーが環境変数GOOGLE_MAPS_API_KEYに設定されていません")
-                return
-            
-            try:
-                config = create_config_from_params(
-                    config_data['prefecture'],
-                    config_data['city'],
-                    config_data['column_mapping'],
-                    config_data['api_key'],
-                    config_data['sleep_ms'],
-                    config_data['normalize_digits']
-                )
-                
-                csv_data = st.session_state['csv_data']
-                data_rows = csv_data[1:]
-                
-                progress_bar = st.progress(0)
-                status_text = st.empty()
-                
-                def progress_callback(current, total):
-                    progress = current / total
-                    progress_bar.progress(progress)
-                    status_text.text(f"処理中... {current}/{total} ({progress:.1%})")
-                
-                with st.spinner("CSV正規化を実行中..."):
-                    results = process_csv_data(data_rows, config, progress_callback)
-                
-                st.success("✅ 正規化が完了しました！")
-                
-                result_df = pd.DataFrame(results[1:], columns=results[0])
-                st.subheader("処理結果")
-                st.dataframe(result_df, use_container_width=True)
-                
-                csv_buffer = io.StringIO()
-                csv_writer = csv.writer(csv_buffer)
-                csv_writer.writerows(results)
-                csv_content = csv_buffer.getvalue()
-                
-                st.download_button(
-                    label="📥 正規化済みCSVをダウンロード",
-                    data=csv_content,
-                    file_name=f"{config_data['city']}_normalized.csv",
-                    mime="text/csv",
-                    use_container_width=True
-                )
-                
-                error_count = sum(1 for row in results[1:] if any("ERROR:" in str(cell) for cell in row))
-                if error_count > 0:
-                    st.warning(f"⚠️ {error_count}件のエラーが発生しました。結果を確認してください。")
-                
-            except Exception as e:
-                st.error(f"処理中にエラーが発生しました: {str(e)}")
-    
-    with st.expander("📖 使用方法"):
-        st.markdown("""
-        1. **CSVファイルをアップロード**: ポスター掲示場情報が含まれるCSVファイルを選択
-        2. **設定を構成**: 都道府県、市区町村、列マッピングを設定
-        3. **処理を実行**: 正規化処理を開始
-        4. **結果をダウンロード**: 処理済みCSVファイルをダウンロード
-        
-        - **認証**: Google Maps APIキーは環境変数から自動的に読み込まれます
-        - **CSVフォーマット**: ヘッダー行を含む標準的なCSV形式
-        - **列マッピング**: 番号、住所、名称列の指定が必要
-        
-        - Google Maps APIは課金対象となるため、使用量制限を設定することを推奨します
-        - 大量のデータ処理時は、APIコール間隔を調整してください
-        - 処理中はブラウザを閉じないでください
-        """)
+st.set_page_config(page_title="CSV正規化ツール", layout="wide")
 
-if __name__ == "__main__":
-    main()
+# --- サイドバー: 設定項目 ---
+st.sidebar.title("設定")
+sleep_msec = st.sidebar.number_input("APIリクエスト間隔（ミリ秒）", min_value=0, max_value=5000, value=200, step=10)
+normalize_digits = st.sidebar.checkbox("漢数字をアラビア数字に変換", value=False)
+st.sidebar.markdown("---")
+st.sidebar.subheader("座標検証設定")
+mode = st.sidebar.selectbox(
+    "検証モード", 
+    options=["distance", "reverse_geocode"], 
+    format_func=lambda x: "距離チェック" if x=="distance" else "逆引きチェック",
+    help="距離チェック：Google APIと国土地理院APIの座標を比較\n逆引きチェック：逆ジオコーディングで住所を検証"
+)
+
+if mode == "distance":
+    st.sidebar.markdown("**距離チェック設定**")
+    gsi_check = st.sidebar.checkbox("Google＋国土地理院API両方を使う", value=True)
+    gsi_distance = st.sidebar.number_input("座標ズレ閾値（メートル）", value=200, min_value=0, max_value=10000, step=10)
+    priority = st.sidebar.selectbox("閾値超時に優先するAPI", options=["gsi", "google"], format_func=lambda x: "国土地理院" if x=="gsi" else "Google")
+    reverse_geocode_check = False
+else:
+    st.sidebar.markdown("**逆引きチェック設定**")
+    reverse_geocode_check = st.sidebar.checkbox("逆ジオコーディングチェックを有効化", value=True, help="Google APIで取得した座標を逆引きして住所の一致を確認")
+    gsi_check = True
+    gsi_distance = 200
+    priority = "gsi"
+
+st.title("📍 CSV正規化ツール")
+st.write("ポスター掲示場所等のCSVを正規化し、Google Maps APIを使って緯度経度を付与します。距離チェックまたは逆引きチェックで座標の品質を検証できます。")
+
+st.header("1. CSVファイルをアップロード")
+csv_file = st.file_uploader("CSVファイルを選択してください", type=["csv"])
+df = None
+filename = ""
+if csv_file is not None:
+    df = pd.read_csv(csv_file)
+    st.success(f"CSVファイルを読み込みました（{len(df)}行のデータ）")
+    st.subheader("データプレビュー")
+    # プレビュー時のみインデックス1始まりで表示
+    df_view = df.copy()
+    df_view.index = df_view.index + 1
+    st.dataframe(df_view, height=400)
+    if hasattr(csv_file, "name"):
+        filename = csv_file.name
+    elif isinstance(csv_file, str):
+        filename = os.path.basename(csv_file)
+    else:
+        filename = ""
+
+def guess_pref_city_vals(col_names, df, filename):
+    pref_candidates = [c for c in col_names if any(x in c for x in ["都", "道", "府", "県"])]
+    city_candidates = [c for c in col_names if any(x in c for x in ["市", "区", "町", "村"])]
+    pref = ""
+    city = ""
+    if pref_candidates:
+        pref_col = pref_candidates[0]
+        pref = df[pref_col].iloc[0] if df is not None and pref_col in df.columns else ""
+    filename_city = ""
+    for token in ["市", "区", "町", "村"]:
+        if token in filename:
+            filename_city = filename.split(token)[0] + token
+            break
+    if filename_city:
+        city = filename_city
+    elif city_candidates:
+        city_col = city_candidates[0]
+        city = df[city_col].iloc[0] if df is not None and city_col in df.columns else ""
+    return pref, city
+
+pref_val = ""
+city_val = ""
+number_col_guess = ""
+addr_col_guess = ""
+name_col_guess = ""
+
+col_names = []
+if csv_file is not None and df is not None:
+    col_names = df.columns.tolist()
+    pref_val, city_val = guess_pref_city_vals(col_names, df, filename)
+    number_col_guess = next((c for c in col_names if "番号" in c or "No" in c or "NO" in c or "no" in c or "num" in c), col_names[0] if col_names else "")
+    addr_col_guess = next((c for c in col_names if "住" in c), col_names[0] if col_names else "")
+    name_col_guess = next((c for c in col_names if "名" in c), col_names[1] if len(col_names) > 1 else "")
+    addr_right = extract_address_like_text_from_last_row(df)
+    pref_val = get_prefecture_from_partial_address(city_val + addr_right)
+
+st.header("2. 設定を構成")
+pref_val = st.text_input("都道府県（prefecture: 固定値）", value=pref_val)
+city_val = st.text_input("市区町村（city: 固定値）", value=city_val)
+number_col = st.selectbox("番号列（number）", col_names if col_names else [""], index=col_names.index(number_col_guess) if number_col_guess in col_names else 0)
+addr_col = st.selectbox("住所列（address）", col_names if col_names else [""], index=col_names.index(addr_col_guess) if addr_col_guess in col_names else 0)
+name_col = st.selectbox("名称列（name）", col_names if col_names else [""], index=col_names.index(name_col_guess) if name_col_guess in col_names else 0)
+
+output_candidates = ["number", "address", "name", "lat", "long", "note"]
+default_outputs = ["number", "address", "name", "lat", "long", "note"]
+output_columns = st.multiselect(
+    "出力する列を選択してください",
+    output_candidates,
+    default=default_outputs,
+    help="note列：座標の品質情報（怪しい場合に「緯度経度は怪しい」と表示）"
+)
+
+st.header("3. 処理を実行")
+
+if 'log_lines' not in st.session_state:
+    st.session_state.log_lines = []
+if 'warning_count' not in st.session_state:
+    st.session_state.warning_count = 0
+
+log_box = st.empty()
+progress_bar = st.progress(0)
+status_text = st.empty()
+
+def log_callback(msg):
+    msg = str(msg)
+    st.session_state.log_lines.append(msg)
+    if msg.startswith("警告"):
+        st.session_state.warning_count += 1
+    log_box.text_area("ログ", "\n".join(str(line) for line in st.session_state.log_lines[-500:]), height=300, key=f"log-{len(st.session_state.log_lines)}")
+
+def progress_callback(idx, total):
+    progress_bar.progress(idx / total)
+    status_text.text(f"処理中: {idx} / {total} 行")
+
+if st.button("CSV正規化を実行"):
+    st.session_state.log_lines = []
+    st.session_state.warning_count = 0
+    
+    if df is not None:
+        if "lat" in output_columns or "long" in output_columns:
+            if not os.environ.get("GOOGLE_MAPS_API_KEY"):
+                st.error("Google Maps APIキーが設定されていません。環境変数 GOOGLE_MAPS_API_KEY を設定してください。")
+                st.stop()
+        try:
+            colmap = {col: idx for idx, col in enumerate(df.columns)}
+            config = {
+                "format": {},
+                "api": {
+                    "sleep": sleep_msec
+                },
+                "normalize_address_digits": normalize_digits
+            }
+            for col in output_columns:
+                if col == "number":
+                    config["format"]["number"] = f"{{{colmap[number_col]+1}}}"
+                elif col == "address":
+                    config["format"]["address"] = f"{{{colmap[addr_col]+1}}}"
+                elif col == "name":
+                    config["format"]["name"] = f"{{{colmap[name_col]+1}}}"
+                elif col == "lat":
+                    config["format"]["lat"] = "{lat}"
+                elif col == "long":
+                    config["format"]["long"] = "{long}"
+
+            config["format"]["prefecture"] = pref_val
+            config["format"]["city"] = city_val
+
+            csv_data = df.values.tolist()
+            
+            info_placeholder = st.empty()
+            info_placeholder.info("処理中…しばらくお待ちください")
+            
+            results = process_csv_data(
+                csv_data,
+                config,
+                progress_callback=progress_callback,
+                log_callback=log_callback,
+                gsi_check=gsi_check,
+                gsi_distance=int(gsi_distance),
+                priority=priority,
+                mode=mode,
+                reverse_geocode_check=reverse_geocode_check
+            )
+            
+            output_header = ["prefecture", "city"] + list(output_columns)
+            out_df = pd.DataFrame(
+                [
+                    [row[results[0].index("prefecture")], row[results[0].index("city")]]
+                    + [row[results[0].index(col)] for col in output_columns]
+                    for row in results[1:]
+                ],
+                columns=output_header
+            )
+            
+            progress_bar.progress(1.0)
+            status_text.text("完了")
+            info_placeholder.empty()
+            msg = "処理完了！出力データをダウンロードできます"
+            if st.session_state.warning_count > 0:
+                msg += f"。変換中に {st.session_state.warning_count} 件の警告が発生しました。"
+            st.success(msg)
+            
+            # ---出力プレビューもインデックス1始まりで---
+            out_df_view = out_df.copy()
+            out_df_view.index = out_df_view.index + 1
+            st.dataframe(out_df_view, height=400)
+            csv_buf = io.StringIO()
+            out_df.to_csv(csv_buf, index=False)
+            st.download_button(
+                "結果CSVをダウンロード",
+                data=csv_buf.getvalue(),
+                file_name=f"{city_val}_normalized.csv",
+                mime="text/csv"
+            )
+        except requests.exceptions.RequestException as e:
+            st.error(f"API通信エラー: {str(e)}")
+            st.info("ネットワーク接続を確認してください。")
+        except ValueError as e:
+            st.error(f"データ処理エラー: {str(e)}")
+            st.info("CSVデータの形式を確認してください。")
+        except Exception as e:
+            st.error(f"予期しないエラー: {str(e)}")
+            st.info("詳細はログを確認してください。")
+    else:
+        st.warning("CSVファイルをアップロードしてください。")
