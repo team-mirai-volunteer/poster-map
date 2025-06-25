@@ -3,6 +3,13 @@ import path from 'path';
 import { PinData, AreaList, ProgressData } from './types';
 
 export function loadCSVData(filePath: string, areaList: AreaList): PinData[] {
+
+  // エリア名からIDへの逆引きマップを作成
+  const areaNameToId = Object.entries(areaList).reduce((acc, [id, area]) => {
+    acc[area.area_name] = parseInt(id, 10);
+    return acc;
+  }, {} as Record<string, number>);
+
   try {
     const csvContent = fs.readFileSync(filePath, 'utf-8');
     const lines = csvContent.trim().split('\n');
@@ -10,26 +17,18 @@ export function loadCSVData(filePath: string, areaList: AreaList): PinData[] {
     return lines.slice(1)
       .map(line => {
         const values = line.split(',');
-        const note = values[5] ? values[5].trim() : null;
 
-        // CSV列数の検証
-        if (values.length < 5) {
+        if (values.length < 6) {
           console.warn(`Invalid CSV line: ${line}`);
           return undefined;
         }
-
-        // エリア名でarea_idを検索（Mapを使用してパフォーマンス向上）
-        const areaEntry = Object.entries(areaList).find(([_, area]) => 
-          area.area_name === values[0].trim()
-        );
-        
-        if (!areaEntry) {
+        const area_id = areaNameToId[values[0].trim()];
+        if (area_id === undefined) {
           return undefined;
         }
 
-        const area_id = parseInt(areaEntry[0], 10);
         if (isNaN(area_id)) {
-          console.warn(`Invalid area_id: ${areaEntry[0]}`);
+          console.warn(`Invalid area_id: ${area_id}`);
           return undefined;
         }
 
@@ -56,6 +55,13 @@ export function loadArealist(filePath:string): AreaList{
     
     const areaList: AreaList = lines.slice(1).reduce((acc, line) => {
       const values = line.split(',');
+
+      // CSV列数の検証
+      if (values.length < 2) {
+        console.warn(`Invalid arealist CSV line: ${line}`);
+        return acc;
+      }
+
       acc[values[0]] = { area_name: values[1] };
       return acc;
     }, {} as AreaList);
