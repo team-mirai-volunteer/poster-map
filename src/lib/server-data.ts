@@ -12,20 +12,35 @@ export function loadCSVData(filePath: string, areaList: AreaList): PinData[] {
         const values = line.split(',');
         const note = values[5] ? values[5].trim() : null;
 
-        for(const key in areaList){
-          if(areaList[key]["area_name"] == values[0]){
-            const area_id = parseInt(key)
-            return {
-              area_id: area_id,
-              name: values[1],
-              lat: parseFloat(values[2]),
-              long: parseFloat(values[3]),
-              status: parseInt(values[4]),
-              // note: note === '' ? null : note
-            };
-          };
+        // CSV列数の検証
+        if (values.length < 5) {
+          console.warn(`Invalid CSV line: ${line}`);
+          return undefined;
+        }
+
+        // エリア名でarea_idを検索（Mapを使用してパフォーマンス向上）
+        const areaEntry = Object.entries(areaList).find(([_, area]) => 
+          area.area_name === values[0].trim()
+        );
+        
+        if (!areaEntry) {
+          return undefined;
+        }
+
+        const area_id = parseInt(areaEntry[0], 10);
+        if (isNaN(area_id)) {
+          console.warn(`Invalid area_id: ${areaEntry[0]}`);
+          return undefined;
+        }
+
+        return {
+          area_id,
+          name: values[1].trim(),
+          lat: parseFloat(values[2]),
+          long: parseFloat(values[3]),
+          status: parseInt(values[4], 10),
         };
-        return undefined;
+
     }).filter((item): item is PinData => item !== undefined);
 
   } catch (error) {
