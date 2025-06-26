@@ -6,6 +6,9 @@ export default function Home() {
       <div className="col-lg-12 px-0">
         <h3 className="mb-4">チームみらいマップ 都道府県</h3>
         <div className="list-group mb-4">
+          <Link href="/all" className="list-group-item list-group-item-action">
+            全国
+          </Link>
           <Link href="/hokkaido" className="list-group-item list-group-item-action">
             北海道
           </Link>

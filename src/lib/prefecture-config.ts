@@ -17,6 +17,14 @@ export interface PrefectureConfig {
 }
 
 export const prefectureConfigs: Record<string, PrefectureConfig> = {
+  all: {
+    id: 'all',
+    nameJa: '全国',
+    nameEn: 'all',
+    defaultLat: 36.2829,
+    defaultLong: 138.7699,
+    defaultZoom: 5,
+  },
   hokkaido: {
     id: 'hokkaido',
     nameJa: '北海道',
