@@ -3,7 +3,6 @@ import path from 'path';
 import { PinData, AreaList, ProgressData } from './types';
 
 export function loadCSVData(filePath: string, areaList: AreaList): PinData[] {
-<<<<<<< HEAD
 
   // エリア名からIDへの逆引きマップを作成
   const areaNameToId = Object.entries(areaList).reduce((acc, [id, area]) => {
@@ -11,8 +10,6 @@ export function loadCSVData(filePath: string, areaList: AreaList): PinData[] {
     return acc;
   }, {} as Record<string, number>);
 
-=======
->>>>>>> origin/main
   try {
     const csvContent = fs.readFileSync(filePath, 'utf-8');
     const lines = csvContent.trim().split('\n');
@@ -58,7 +55,6 @@ export function loadArealist(filePath:string): AreaList{
     
     const areaList: AreaList = lines.slice(1).reduce((acc, line) => {
       const values = line.split(',');
-<<<<<<< HEAD
 
       // CSV列数の検証
       if (values.length < 2) {
@@ -66,8 +62,6 @@ export function loadArealist(filePath:string): AreaList{
         return acc;
       }
 
-=======
->>>>>>> origin/main
       acc[values[0]] = { area_name: values[1] };
       return acc;
     }, {} as AreaList);
