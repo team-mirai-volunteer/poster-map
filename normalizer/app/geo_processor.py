@@ -169,6 +169,42 @@ def normalize_japanese_address(addr):
         return m.group(1)
     return addr
 
+def remove_prefecture_duplication(prefecture, address):
+    """
+    Remove prefecture name from address if it appears at the beginning
+    """
+    if not prefecture or not address:
+        return address
+    
+    if address.startswith(prefecture):
+        return address[len(prefecture):].strip()
+    return address
+
+def remove_city_duplication(city, address):
+    """
+    Remove city name from address if it appears at the beginning
+    """
+    if not city or not address:
+        return address
+    
+    if address.startswith(city):
+        return address[len(city):].strip()
+    return address
+
+def clean_address_duplicates(prefecture, city, address):
+    """
+    Remove prefecture and city duplications from address
+    Returns cleaned address that should only contain city+ portion
+    """
+    if not address:
+        return address
+    
+    cleaned = remove_prefecture_duplication(prefecture, address)
+    
+    cleaned = remove_city_duplication(city, cleaned)
+    
+    return cleaned
+
 def addresses_roughly_match(addr1, addr2, threshold=None):
     core1 = normalize_japanese_address(addr1)
     core2 = normalize_japanese_address(addr2)
@@ -287,7 +323,13 @@ def process_csv_data(
         else:
             normalized_address = raw_address.strip().strip("　")
 
-        full_api_address = f"{format_config['prefecture']}{format_config['city']}{normalized_address}"
+        cleaned_address = clean_address_duplicates(
+            format_config['prefecture'], 
+            format_config['city'], 
+            normalized_address
+        )
+
+        full_api_address = f"{format_config['prefecture']}{format_config['city']}{cleaned_address}"
 
         # 緯度経度（note_listを渡してget_best_latlng内でnote列をセット）
         lat, lng, source = get_best_latlng(
@@ -301,7 +343,7 @@ def process_csv_data(
             if col_name == "note":
                 out_row.append("".join(str(item) for item in note_list))
             elif col_name == "address":
-                out_row.append(clean(normalized_address))
+                out_row.append(clean(cleaned_address))
             elif col_name in format_config:
                 rendered = render_template(
                     idx, format_config[col_name], row, cache, full_api_address, api_key, sleep_msec, 
