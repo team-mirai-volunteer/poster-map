@@ -18,6 +18,8 @@ function getPinNote(note: string | null): string {
 async function loadBoardPins(pins: PinData[], layer: any, areaList: AreaList, L: any, status: number | null = null) {
   const filteredPins = status !== null ? pins.filter(item => item.status === status) : pins;
   
+  const coordinateGroups = new Map<string, PinData[]>();
+  
   filteredPins.forEach(pin => {
     const lat = Number(pin.lat);
     const lng = Number(pin.long);
@@ -26,21 +28,44 @@ async function loadBoardPins(pins: PinData[], layer: any, areaList: AreaList, L:
       console.warn(`Invalid pin lat/lng:`, pin);
       return;
     }
-    const marker = L.circleMarker([lat, lng], {
-      radius: 8,
-      color: 'black',
-      weight: 1,
-      fillColor: getStatusColor(pin.status),
-      fillOpacity: 0.9,
-    }).addTo(layer);
     
-    const areaName = areaList[pin.area_id]?.area_name || '不明';
-    marker.bindPopup(`
-      <b>${areaName} ${pin.name}</b><br>
-      ステータス: ${getStatusText(pin.status)}<br>
-      備考: ${getPinNote((pin as any).note)}<br>
-      座標: <a href="https://www.google.com/maps/search/${pin.lat},+${pin.long}" target="_blank" rel="noopener noreferrer">(${pin.lat}, ${pin.long})</a>
-    `);
+    const coordKey = `${lat.toFixed(6)},${lng.toFixed(6)}`;
+    if (!coordinateGroups.has(coordKey)) {
+      coordinateGroups.set(coordKey, []);
+    }
+    coordinateGroups.get(coordKey)!.push(pin);
+  });
+  
+  coordinateGroups.forEach((pinsAtLocation, coordKey) => {
+    const [baseLat, baseLng] = coordKey.split(',').map(Number);
+    
+    pinsAtLocation.forEach((pin, index) => {
+      let adjustedLat = baseLat;
+      let adjustedLng = baseLng;
+      
+      if (pinsAtLocation.length > 1) {
+        const offsetDistance = 0.0001; // 約10メートル程度のオフセット
+        const angle = (index * 360 / pinsAtLocation.length) * (Math.PI / 180); // 円形に配置
+        adjustedLat += offsetDistance * Math.cos(angle);
+        adjustedLng += offsetDistance * Math.sin(angle);
+      }
+      
+      const marker = L.circleMarker([adjustedLat, adjustedLng], {
+        radius: 8,
+        color: 'black',
+        weight: 1,
+        fillColor: getStatusColor(pin.status),
+        fillOpacity: 0.9,
+      }).addTo(layer);
+      
+      const areaName = areaList[pin.area_id]?.area_name || '不明';
+      marker.bindPopup(`
+        <b>${areaName} ${pin.name}</b><br>
+        ステータス: ${getStatusText(pin.status)}<br>
+        備考: ${getPinNote((pin as any).note)}<br>
+        座標: <a href="https://www.google.com/maps/search/${pin.lat},+${pin.long}" target="_blank" rel="noopener noreferrer">(${pin.lat}, ${pin.long})</a>
+      `);
+    });
   });
 }
 
