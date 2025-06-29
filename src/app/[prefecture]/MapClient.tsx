@@ -44,7 +44,7 @@ async function loadBoardPins(pins: PinData[], layer: any, areaList: AreaList, L:
       let adjustedLng = baseLng;
       
       if (pinsAtLocation.length > 1) {
-        const offsetDistance = 0.0001; // 約10メートル程度のオフセット
+        const offsetDistance = 0.00005; // 約5メートル程度のオフセット
         const angle = (index * 360 / pinsAtLocation.length) * (Math.PI / 180); // 円形に配置
         adjustedLat += offsetDistance * Math.cos(angle);
         adjustedLng += offsetDistance * Math.sin(angle);
