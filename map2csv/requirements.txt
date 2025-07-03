@@ -1,5 +1,6 @@
-streamlit
-numpy
-Pillow
-streamlit_image_coordinates
-opencv-python
+streamlit>=1.28.0
+numpy>=1.24.0
+Pillow>=10.0.0
+streamlit_image_coordinates>=0.1.0
+opencv-python>=4.8.0
+pandas>=2.0.0
