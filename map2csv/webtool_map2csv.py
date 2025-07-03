@@ -81,7 +81,7 @@ if target_img:
             # DataFrameで番号・緯度・経度のみ表示
             rows = []
             for i, (x, y) in enumerate(st.session_state["clicked_points"]):
-                pt = np.array([[x, y, 1]], dtype=np.float32).T
+                pt = np.array([[x, y, 1]], dtype=np.float64).T
                 geo = M @ pt
                 num = st.session_state["numbers"][i] if i < len(st.session_state["numbers"]) else str(i+1)
                 rows.append({
@@ -201,8 +201,8 @@ if target_img:
                     st.warning("入力形式が正しくありません（例: 35.6,139.7）")
         # 2点以上で2Dアフィン変換を計算
         if len(st.session_state["coords"]) >= 2 and len(st.session_state["latlons"]) >= 2:
-            pts_img = np.array(st.session_state["coords"][:2], dtype=np.float32)
-            pts_geo = np.array(st.session_state["latlons"][:2], dtype=np.float32)
+            pts_img = np.array(st.session_state["coords"][:2], dtype=np.float64)
+            pts_geo = np.array(st.session_state["latlons"][:2], dtype=np.float64)
             def get_2pt_affine(src, dst):
                 # src, dst: shape=(2,2)
                 x0, y0 = src[0]
@@ -218,7 +218,7 @@ if target_img:
                 cos_t, sin_t = np.cos(theta), np.sin(theta)
                 A = scale * np.array([[cos_t, -sin_t], [sin_t, cos_t]])
                 t = np.array([u0, v0]) - A @ np.array([x0, y0])
-                M = np.zeros((2, 3), dtype=np.float32)
+                M = np.zeros((2, 3), dtype=np.float64)
                 M[:2, :2] = A
                 M[:2, 2] = t
                 return M
