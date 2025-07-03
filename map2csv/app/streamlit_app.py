@@ -33,6 +33,18 @@ if uploaded_file is not None:
         st.write("## 位置合わせ")
         st.write("画像上の2点以上をクリックして、対応する緯度経度を入力してください。")
         
+        st.info("""
+        💡 **精度向上のコツ**
+        
+        アフィン変換の精度を最大化するため、以下の点を選択することをお勧めします：
+        
+        • **地図の対角線上の端点**（左上と右下、または右上と左下）
+        • **地図の四隅に近い明確なランドマーク**（建物、交差点、橋など）
+        • **できるだけ離れた位置にある2点**
+        
+        選択する点が離れているほど、座標変換の精度が向上します。
+        """)
+        
         try:
             font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 20)
         except:
