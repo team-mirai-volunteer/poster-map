@@ -15,7 +15,7 @@ if target_img:
     w, h = img.size
     scale = 1500 / max(w, h)
     new_size = (int(w * scale), int(h * scale))
-    img = img.resize(new_size, Image.LANCZOS)
+    img = img.resize(new_size, Image.Resampling.LANCZOS)
 
     # 位置合わせ後の新規マーク入力モードを最初に分岐
     if "homography" in st.session_state:
@@ -66,7 +66,7 @@ if target_img:
                 if st.button("追加", key="add_point"):
                     if input_num in st.session_state["numbers"]:
                         st.warning("番号が重複しています")
-                    elif input_num.strip() == "":
+                    elif input_num and input_num.strip() == "":
                         st.warning("番号を入力してください")
                     else:
                         st.session_state["clicked_points"].append((x, y))
@@ -188,7 +188,7 @@ if target_img:
             st.rerun()
     with col2:
         st.write("### 対応する緯度経度を入力（例: 35.6,139.7）")
-        for i, (x, y) in enumerate(st.session_state["coords"]):
+        for i, _ in enumerate(st.session_state["coords"]):
             latlon = st.text_input(f"マーク{i+1}の緯度,経度", key=f"latlon_{i}")
             if latlon:
                 try:
@@ -197,8 +197,8 @@ if target_img:
                         st.session_state["latlons"].append((lat, lon))
                     else:
                         st.session_state["latlons"][i] = (lat, lon)
-                except Exception:
-                    st.warning(f"入力形式が正しくありません（例: 35.6,139.7）")
+                except (ValueError, IndexError):
+                    st.warning("入力形式が正しくありません（例: 35.6,139.7）")
         # 2点以上で2Dアフィン変換を計算
         if len(st.session_state["coords"]) >= 2 and len(st.session_state["latlons"]) >= 2:
             pts_img = np.array(st.session_state["coords"][:2], dtype=np.float32)
