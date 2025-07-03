@@ -113,9 +113,38 @@ if uploaded_file is not None:
             
             M = get_2pt_affine(pts_img, pts_geo)
             
-            if st.button("位置合わせ完了"):
-                st.session_state["homography"] = M
-                st.rerun()
+            x0, y0 = pts_img[0]
+            x1, y1 = pts_img[1]
+            dx, dy = x1 - x0, y1 - y0
+            distance = np.sqrt(dx**2 + dy**2)
+            
+            min_distance_threshold = 100
+            
+            if distance < min_distance_threshold:
+                st.error(f"""
+                ⚠️ **マーク間の距離が不十分です**
+                
+                現在の2点間の距離: {distance:.1f}ピクセル
+                推奨距離: {min_distance_threshold}ピクセル以上
+                
+                **精度向上のため、以下を実行してください：**
+                • より離れた位置にマークを配置し直してください
+                • 地図の対角線上の端点を選択してください
+                • 明確なランドマーク（建物、交差点など）を選んでください
+                
+                距離が近すぎると座標変換の精度が大幅に低下します。
+                """)
+                
+                if st.button("マークをやり直す", type="primary"):
+                    st.session_state["coords"] = []
+                    st.session_state["latlons"] = []
+                    st.rerun()
+            else:
+                st.success(f"✅ マーク間の距離: {distance:.1f}ピクセル（適切な距離です）")
+                
+                if st.button("位置合わせ完了"):
+                    st.session_state["homography"] = M
+                    st.rerun()
     
     else:
         M = st.session_state["homography"]
