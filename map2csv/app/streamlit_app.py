@@ -183,7 +183,11 @@ if uploaded_file is not None:
                 if st.session_state.get("pending_click") and len(st.session_state["pending_click"]) >= 3:
                     x, y, point_index = st.session_state["pending_click"][:3]
                     st.write(f"座標: ({x}, {y})")
-                    input_num = st.text_input("番号", key="input_number", value="")
+                    
+                    if "input_counter" not in st.session_state:
+                        st.session_state["input_counter"] = 0
+                    
+                    input_num = st.text_input("番号", key=f"input_number_{st.session_state['input_counter']}", value="")
                     if st.button("追加", key="add_point"):
                         if input_num.strip() == "":
                             st.warning("番号を入力してください")
@@ -192,7 +196,7 @@ if uploaded_file is not None:
                         else:
                             st.session_state["numbers"][point_index] = input_num
                             st.session_state["pending_click"] = None
-                            st.session_state["input_number"] = ""
+                            st.session_state["input_counter"] += 1
                             st.rerun()
                     if st.button("キャンセル", key="cancel_point"):
                         st.session_state["clicked_points"].pop(point_index)
