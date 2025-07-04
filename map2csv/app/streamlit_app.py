@@ -219,6 +219,24 @@ if uploaded_file is not None:
                         file_name="coordinates.csv",
                         mime="text/csv"
                     )
+                    
+                    st.write("### 指定番号で削除")
+                    delete_number = st.text_input("削除する番号を入力", key="delete_number")
+                    if st.button("指定番号を削除", key="delete_by_number"):
+                        if delete_number:
+                            try:
+                                if delete_number in st.session_state["numbers"]:
+                                    index_to_delete = st.session_state["numbers"].index(delete_number)
+                                    st.session_state["clicked_points"].pop(index_to_delete)
+                                    st.session_state["numbers"].pop(index_to_delete)
+                                    st.success(f"番号 '{delete_number}' を削除しました")
+                                    st.rerun()
+                                else:
+                                    st.warning(f"番号 '{delete_number}' が見つかりません")
+                            except (ValueError, IndexError):
+                                st.error("削除に失敗しました")
+                        else:
+                            st.warning("削除する番号を入力してください")
                 
                 if st.button("リセット"):
                     for key in ["clicked_points", "numbers", "pending_click"]:
