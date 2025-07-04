@@ -1,7 +1,6 @@
 import tempfile
 import shutil
 import base64
-import json
 import urllib.parse
 import requests
 import pandas as pd
@@ -77,7 +76,7 @@ class PDFProcessor:
     def extract_addresses_from_image(self, image_path: str, prompt_text: str = None) -> List[Dict[str, str]]:
         base64_image = self.encode_image(image_path)
         if prompt_text is None:
-            prompt_text = "の画像に表があります。投票区の列と番号の列に番号が、そして、各設置場所の説明の列に名称が、所在地に住所が書かれています。リスト化して、「番号」「住所」「名称」をkeyとしたcsv形式で出力してください。必ずcsvだけを出力してください。番号は第N投票区M番だったら、「N-M」のように直して番号へ入れてください。"
+            prompt_text = "この画像に表があります。投票区の列と番号の列に番号が、そして、各設置場所の説明の列に名称が、所在地に住所が書かれています。リスト化して、「番号」「住所」「名称」をkeyとしたcsv形式で出力してください。必ずcsvだけを出力してください。番号は第N投票区M番だったら、「N-M」のように直して番号へ入れてください。"
         
         completion = self.client.chat.completions.create(
             model=self.config.model_name,
