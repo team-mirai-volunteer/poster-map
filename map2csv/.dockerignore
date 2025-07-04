@@ -1,0 +1,11 @@
+.env
+.env.local
+.env.production
+.env.staging
+*.pyc
+__pycache__/
+.git/
+.gitignore
+README.md
+.DS_Store
+*.log

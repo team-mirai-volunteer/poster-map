@@ -10,3 +10,8 @@ output "pdf_converter_service_account_email" {
   description = "Email of the PDF converter service account"
 }
 
+output "map2csv_service_account_email" {
+  value       = google_service_account.map2csv.email
+  description = "Email of the map2csv service account"
+}
+
