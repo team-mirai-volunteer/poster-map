@@ -151,32 +151,8 @@ if uploaded_file is not None:
     else:
         M = st.session_state["homography"]
         
-        try:
-            font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 20)
-        except:
-            font = ImageFont.load_default()
-        
-        img_final = img.copy()
-        draw = ImageDraw.Draw(img_final)
-        for i, (x, y) in enumerate(st.session_state["clicked_points"]):
-            r = 5
-            draw.ellipse((x - r, y - r, x + r, y + r), outline="blue", width=3)
-            if i < len(st.session_state["numbers"]):
-                num = st.session_state["numbers"][i]
-                draw.text((x + r + 2, y - r), num, fill="blue", font=font)
-        
         with st.container():
             col1, col2 = st.columns([2, 1])
-            with col1:
-                st.write("### 画像上で場所をクリックしてください（複数可）")
-                new_click = streamlit_image_coordinates(img_final, key="final_mark")
-                if new_click is not None and (
-                    not st.session_state.get("pending_click") or (new_click["x"], new_click["y"]) != tuple(st.session_state["pending_click"][:2])
-                ):
-                    st.session_state["clicked_points"].append((new_click["x"], new_click["y"]))
-                    st.session_state["numbers"].append("")
-                    st.session_state["pending_click"] = [new_click["x"], new_click["y"], len(st.session_state["clicked_points"]) - 1]
-                    st.rerun()
             
             with col2:
                 st.write("### 番号を入力")
@@ -252,6 +228,32 @@ if uploaded_file is not None:
                     for key in ["clicked_points", "numbers", "pending_click"]:
                         if key in st.session_state:
                             del st.session_state[key]
+                    st.rerun()
+            
+            try:
+                font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 20)
+            except:
+                font = ImageFont.load_default()
+            
+            img_final = img.copy()
+            draw = ImageDraw.Draw(img_final)
+            for i, (x, y) in enumerate(st.session_state["clicked_points"]):
+                r = 5
+                draw.ellipse((x - r, y - r, x + r, y + r), outline="blue", width=3)
+                if i < len(st.session_state["numbers"]):
+                    num = st.session_state["numbers"][i]
+                    if num != "":
+                        draw.text((x + r + 2, y - r), num, fill="blue", font=font)
+            
+            with col1:
+                st.write("### 画像上で場所をクリックしてください（複数可）")
+                new_click = streamlit_image_coordinates(img_final, key="final_mark")
+                if new_click is not None and (
+                    not st.session_state.get("pending_click") or (new_click["x"], new_click["y"]) != tuple(st.session_state["pending_click"][:2])
+                ):
+                    st.session_state["clicked_points"].append((new_click["x"], new_click["y"]))
+                    st.session_state["numbers"].append("")
+                    st.session_state["pending_click"] = [new_click["x"], new_click["y"], len(st.session_state["clicked_points"]) - 1]
                     st.rerun()
 
 else:
