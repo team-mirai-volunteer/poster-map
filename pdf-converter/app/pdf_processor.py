@@ -1,7 +1,6 @@
 import tempfile
 import shutil
 import base64
-import json
 import urllib.parse
 import requests
 import pandas as pd
