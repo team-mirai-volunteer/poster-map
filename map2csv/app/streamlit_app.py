@@ -161,8 +161,9 @@ if uploaded_file is not None:
         for i, (x, y) in enumerate(st.session_state["clicked_points"]):
             r = 5
             draw.ellipse((x - r, y - r, x + r, y + r), outline="blue", width=3)
-            num = st.session_state["numbers"][i] if i < len(st.session_state["numbers"]) else str(i+1)
-            draw.text((x + r + 2, y - r), num, fill="blue", font=font)
+            if i < len(st.session_state["numbers"]):
+                num = st.session_state["numbers"][i]
+                draw.text((x + r + 2, y - r), num, fill="blue", font=font)
         
         with st.container():
             col1, col2 = st.columns([2, 1])
@@ -172,39 +173,44 @@ if uploaded_file is not None:
                 if new_click is not None and (
                     not st.session_state.get("pending_click") or (new_click["x"], new_click["y"]) != tuple(st.session_state["pending_click"][:2])
                 ):
-                    st.session_state["pending_click"] = [new_click["x"], new_click["y"]]
+                    st.session_state["clicked_points"].append((new_click["x"], new_click["y"]))
+                    st.session_state["numbers"].append("")
+                    st.session_state["pending_click"] = [new_click["x"], new_click["y"], len(st.session_state["clicked_points"]) - 1]
                     st.rerun()
             
             with col2:
                 st.write("### 番号を入力")
-                if st.session_state.get("pending_click"):
-                    x, y = st.session_state["pending_click"][:2]
+                if st.session_state.get("pending_click") and len(st.session_state["pending_click"]) >= 3:
+                    x, y, point_index = st.session_state["pending_click"][:3]
                     st.write(f"座標: ({x}, {y})")
-                    input_num = st.text_input("番号", key="input_number")
+                    input_num = st.text_input("番号", key="input_number", value="")
                     if st.button("追加", key="add_point"):
-                        if input_num in st.session_state["numbers"]:
-                            st.warning("番号が重複しています")
-                        elif input_num and input_num.strip() == "":
+                        if input_num.strip() == "":
                             st.warning("番号を入力してください")
+                        elif input_num in [num for num in st.session_state["numbers"] if num != ""]:
+                            st.warning("番号が重複しています")
                         else:
-                            st.session_state["clicked_points"].append((x, y))
-                            st.session_state["numbers"].append(input_num)
+                            st.session_state["numbers"][point_index] = input_num
                             st.session_state["pending_click"] = None
+                            st.session_state["input_number"] = ""
                             st.rerun()
                     if st.button("キャンセル", key="cancel_point"):
+                        st.session_state["clicked_points"].pop(point_index)
+                        st.session_state["numbers"].pop(point_index)
                         st.session_state["pending_click"] = None
                         st.rerun()
 
             rows = []
             for i, (x, y) in enumerate(st.session_state["clicked_points"]):
-                pt = np.array([[x, y, 1]], dtype=np.float64).T
-                geo = M @ pt
-                num = st.session_state["numbers"][i] if i < len(st.session_state["numbers"]) else str(i+1)
-                rows.append({
-                    "番号": num,
-                    "緯度": f"{geo[0, 0]:.6f}",
-                    "経度": f"{geo[1, 0]:.6f}"
-                })
+                if i < len(st.session_state["numbers"]) and st.session_state["numbers"][i] != "":
+                    pt = np.array([[x, y, 1]], dtype=np.float64).T
+                    geo = M @ pt
+                    num = st.session_state["numbers"][i]
+                    rows.append({
+                        "番号": num,
+                        "緯度": f"{geo[0, 0]:.6f}",
+                        "経度": f"{geo[1, 0]:.6f}"
+                    })
             
             with col2:
                 if rows:
