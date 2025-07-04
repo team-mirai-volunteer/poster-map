@@ -135,16 +135,18 @@ if uploaded_file is not None:
                 距離が近すぎると座標変換の精度が大幅に低下します。
                 """)
                 
-                if st.button("マークをやり直す", type="primary"):
-                    st.session_state["coords"] = []
-                    st.session_state["latlons"] = []
-                    st.rerun()
+                with col2:
+                    if st.button("マークをやり直す", type="primary"):
+                        st.session_state["coords"] = []
+                        st.session_state["latlons"] = []
+                        st.rerun()
             else:
                 st.success(f"✅ マーク間の距離: {distance:.1f}ピクセル（適切な距離です）")
                 
-                if st.button("位置合わせ完了"):
-                    st.session_state["homography"] = M
-                    st.rerun()
+                with col2:
+                    if st.button("位置合わせ完了"):
+                        st.session_state["homography"] = M
+                        st.rerun()
     
     else:
         M = st.session_state["homography"]
@@ -204,23 +206,25 @@ if uploaded_file is not None:
                     "経度": f"{geo[1, 0]:.6f}"
                 })
             
-            if rows:
-                df = pd.DataFrame(rows)
-                st.dataframe(df, use_container_width=True)
+            with col2:
+                if rows:
+                    st.write("### 座標変換結果")
+                    df = pd.DataFrame(rows)
+                    st.dataframe(df, use_container_width=True)
+                    
+                    csv = df.to_csv(index=False)
+                    st.download_button(
+                        label="CSVダウンロード",
+                        data=csv,
+                        file_name="coordinates.csv",
+                        mime="text/csv"
+                    )
                 
-                csv = df.to_csv(index=False)
-                st.download_button(
-                    label="CSVダウンロード",
-                    data=csv,
-                    file_name="coordinates.csv",
-                    mime="text/csv"
-                )
-            
-            if st.button("リセット"):
-                for key in ["clicked_points", "numbers", "pending_click"]:
-                    if key in st.session_state:
-                        del st.session_state[key]
-                st.rerun()
+                if st.button("リセット"):
+                    for key in ["clicked_points", "numbers", "pending_click"]:
+                        if key in st.session_state:
+                            del st.session_state[key]
+                    st.rerun()
 
 else:
     st.info("まず地図画像をアップロードしてください。")
