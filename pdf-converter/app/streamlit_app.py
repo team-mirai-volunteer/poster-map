@@ -40,10 +40,6 @@ def main():
         try:
             if 'processed_df' not in st.session_state or st.session_state.get('last_uploaded_file') != uploaded_file.name:
                 with st.spinner("処理中..."):
-                    
-                    placeholders = [st.empty() for _ in range(3)]
-                    content_placeholder = st.empty()
-                    image_table_placeholder = st.empty()
 
                     def progress_callback_message(message, idx=0):
                         placeholders[idx].text(message)
