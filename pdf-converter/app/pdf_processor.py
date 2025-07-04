@@ -20,6 +20,10 @@ class PDFProcessor:
             return base64.b64encode(image_file.read()).decode("utf-8")
 
     def process_pdf(self, uploaded_file, progress_callback=None, content_callback=None, prompt_text: str = None) -> pd.DataFrame:
+        if prompt_text and len(prompt_text) > 1000:
+            raise ValueError("プロンプトが長すぎます")
+        if prompt_text and any(word in prompt_text.lower() for word in ["ignore", "forget", "system", "assistant"]):
+            raise ValueError("不適切なプロンプトが検出されました")
         tmp_dir = tempfile.mkdtemp()
         
         try:
@@ -57,11 +61,14 @@ class PDFProcessor:
                     if content_callback:
                         content_callback(image, df.copy())
                 except Exception as e:
+                    import traceback
+                    error_details = traceback.format_exc()
                     if progress_callback:
-                        progress_callback(f"エラー: {str(e)}", idx=1)
+                        progress_callback(f"ページ {i+1} でエラー: {str(e)}", idx=1)
                     not_detected_addresses.append({
                         "page": i + 1,
-                        "error": str(e)
+                        "error": str(e),
+                        "error_details": error_details
                     })
                 finally:
                     if os.path.exists(image_path):
