@@ -228,11 +228,6 @@ if uploaded_file is not None:
                         else:
                             st.warning("削除する番号を入力してください")
                 
-                if st.button("リセット"):
-                    for key in ["clicked_points", "numbers", "pending_click"]:
-                        if key in st.session_state:
-                            del st.session_state[key]
-                    st.rerun()
             
             try:
                 font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 20)
