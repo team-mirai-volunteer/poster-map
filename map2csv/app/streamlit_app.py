@@ -207,7 +207,10 @@ if uploaded_file is not None:
                     )
                     
                     st.write("### 指定番号で削除")
-                    delete_number = st.text_input("削除する番号を入力", key="delete_number")
+                    if "delete_counter" not in st.session_state:
+                        st.session_state["delete_counter"] = 0
+                    
+                    delete_number = st.text_input("削除する番号を入力", key=f"delete_number_{st.session_state['delete_counter']}")
                     if st.button("指定番号を削除", key="delete_by_number"):
                         if delete_number:
                             try:
@@ -215,6 +218,7 @@ if uploaded_file is not None:
                                     index_to_delete = st.session_state["numbers"].index(delete_number)
                                     st.session_state["clicked_points"].pop(index_to_delete)
                                     st.session_state["numbers"].pop(index_to_delete)
+                                    st.session_state["delete_counter"] += 1
                                     st.success(f"番号 '{delete_number}' を削除しました")
                                     st.rerun()
                                 else:
