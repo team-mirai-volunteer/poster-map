@@ -87,3 +87,21 @@ gcloud run deploy csv-normalizer \
   --service-account=$(terraform output -raw normalizer_service_account_email) \
   --region=asia-northeast1
 ```
+
+## GitHub Actions Setup
+
+### PDF Converter CD用GitHub Secrets設定
+
+PDF ConverterのCD用に以下のGitHub Secretsを設定してください：
+
+```bash
+# Terraformのoutputから値を取得
+terraform output workload_identity_provider
+terraform output pdf_converter_service_account_email
+
+# GitHub Secretsに設定
+# Repository Settings > Secrets and variables > Actions で以下を追加:
+# - GCP_PROJECT_ID: [your-project-id]
+# - WIF_PROVIDER: [terraform outputの値]
+# - PDF_CONVERTER_SA: [terraform outputの値]
+```
