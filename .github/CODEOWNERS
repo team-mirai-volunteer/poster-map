@@ -6,7 +6,7 @@
 * @banbiossa
 
 # フロントエンド・アプリケーション（主要開発者）
-/src/ @banbiossa @auco67
+/src/ @banbiossa
 
 # データファイル（都道府県別データ管理）
 /src/data/ @auco67 @banbiossa
@@ -19,6 +19,9 @@
 
 # インフラストラクチャ（Terraform）
 /infra/ @banbiossa
+
+# CSV処理ツール（map2csv機能）
+/csv2json_small.py @junyatsuta @banbiossa
 
 # 設定ファイル
 /package.json @banbiossa
