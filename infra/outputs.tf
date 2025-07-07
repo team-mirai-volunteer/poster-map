@@ -15,3 +15,13 @@ output "map2csv_service_account_email" {
   description = "Email of the map2csv service account"
 }
 
+output "workload_identity_provider" {
+  value       = google_iam_workload_identity_pool_provider.github_actions.name
+  description = "Workload Identity Provider for GitHub Actions"
+}
+
+output "pdf_converter_artifact_registry" {
+  value       = google_artifact_registry_repository.pdf_converter.name
+  description = "PDF converter Artifact Registry repository name"
+}
+

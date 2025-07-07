@@ -8,7 +8,7 @@ resource "google_service_account" "pdf_converter" {
 # Create the Secret Manager secret
 resource "google_secret_manager_secret" "openrouter_api_key" {
   secret_id = "openrouter-api-key"
-  
+
   replication {
     auto {}
   }
@@ -24,7 +24,7 @@ resource "google_secret_manager_secret_iam_member" "pdf_converter_openrouter_key
   secret_id = google_secret_manager_secret.openrouter_api_key.secret_id
   role      = "roles/secretmanager.secretAccessor"
   member    = "serviceAccount:${google_service_account.pdf_converter.email}"
-  
+
   depends_on = [
     google_service_account.pdf_converter,
     google_secret_manager_secret.openrouter_api_key
@@ -36,7 +36,7 @@ resource "google_secret_manager_secret_iam_member" "compute_sa_openrouter_key" {
   secret_id = google_secret_manager_secret.openrouter_api_key.secret_id
   role      = "roles/secretmanager.secretAccessor"
   member    = "serviceAccount:${var.project_number}-compute@developer.gserviceaccount.com"
-  
+
   depends_on = [google_secret_manager_secret.openrouter_api_key]
 }
 
@@ -45,7 +45,7 @@ resource "google_artifact_registry_repository" "pdf_converter" {
   repository_id = "pdf-converter"
   description   = "Docker repository for PDF converter service"
   format        = "DOCKER"
-  
+
   depends_on = [google_project_service.apis]
 }
 

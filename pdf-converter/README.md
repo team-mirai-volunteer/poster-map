@@ -81,6 +81,20 @@ make setup-secrets
 make deploy
 ```
 
+### GitHub Actions による自動デプロイ
+
+`main`または`develop`ブランチへのマージ時に自動的にCloud Runにデプロイされます。
+
+#### 必要なGitHub Secrets
+
+- `GCP_PROJECT_ID`: Google CloudプロジェクトID
+- `WIF_PROVIDER`: Workload Identity Provider名
+- `PDF_CONVERTER_SA`: PDF converterサービスアカウントのメールアドレス
+
+#### 手動デプロイ
+
+GitHub ActionsのWorkflowsタブから「PDF Converter CD」を選択し、「Run workflow」で手動実行可能です。
+
 ### 3. 必要な権限の設定
 
 Cloud Runサービスアカウントに以下の権限が必要です：
