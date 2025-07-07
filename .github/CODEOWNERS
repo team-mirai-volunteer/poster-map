@@ -1,3 +1,28 @@
 # CODEOWNERS
-# pattern   owner(s)
-*           @banbiossa
+# このファイルは、プルリクエストの自動レビュー担当者を定義します
+# 詳細: https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
+
+# グローバルオーナー（全体の責任者）
+* @banbiossa
+
+# フロントエンド・アプリケーション（主要開発者）
+/src/ @banbiossa
+
+# データファイル（都道府県別データ管理）
+/src/data/ @auco67 @banbiossa
+
+# 正規化ツール（地理情報処理）
+/normalizer/ @banbiossa @sonicboom719
+
+# PDF変換ツール
+/pdf-converter/ @junyatsuta @banbiossa
+
+# インフラストラクチャ（Terraform）
+/infra/ @banbiossa
+
+# CSV処理ツール（map2csv機能）
+/map2csv/ @junyatsuta @banbiossa
+
+# 設定ファイル
+/package.json @banbiossa
+/tsconfig.json @banbiossa
