@@ -21,7 +21,7 @@
 /infra/ @banbiossa
 
 # CSV処理ツール（map2csv機能）
-/csv2json_small.py @junyatsuta @banbiossa
+/map2csv/ @junyatsuta @banbiossa
 
 # 設定ファイル
 /package.json @banbiossa
