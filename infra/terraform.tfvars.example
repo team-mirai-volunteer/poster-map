@@ -8,5 +8,3 @@ region         = "asia-northeast1"
 # PDF Converter variables
 openrouter_api_key = "your-openrouter-api-key"
 
-# Route Optimizer variables
-openrouteservice_api_key = "your-openrouteservice-api-key"
