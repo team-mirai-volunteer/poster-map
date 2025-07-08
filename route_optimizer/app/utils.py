@@ -110,3 +110,4 @@ def validate_api_key(api_key: str) -> bool:
     if len(api_key.strip()) < 10:
         return False
     return True
+

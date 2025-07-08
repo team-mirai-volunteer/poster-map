@@ -66,7 +66,7 @@ graph TD
     E --> G[ローカルストレージ]
     D --> H[2-opt法]
     D --> I[最近傍法]
-    
+
     style A fill:#e1f5fe
     style B fill:#fff3e0
     style C fill:#f3e5f5
@@ -162,7 +162,7 @@ docker run -d --env-file .env -p 8501:8501 route-optimizer:latest
 ### 使い方
 
 1. **📁 最適化済みルート**: 保存済みのルートを都道府県・市区町村別に閲覧
-2. **🆕 新規最適化**: 
+2. **🆕 新規最適化**:
    - OpenRouteService APIキーを入力
    - 都道府県・市区町村を選択（GitHubから自動取得）
    - 最適化を実行してGoogle Mapsリンクを生成
@@ -322,7 +322,7 @@ make deploy
 
 ### ベンチマーク
 - **小規模**: 10地点以下 - 5秒以内
-- **中規模**: 11-25地点 - 30秒以内  
+- **中規模**: 11-25地点 - 30秒以内
 - **大規模**: 26地点以上 - 直線距離フォールバック
 
 ### 制限事項
