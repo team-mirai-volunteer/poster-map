@@ -17,6 +17,8 @@ resource "google_storage_bucket" "route_optimizer_results" {
   location      = var.region
   storage_class = "STANDARD"
   
+  public_access_prevention = "enforced"
+  
   versioning {
     enabled = true
   }

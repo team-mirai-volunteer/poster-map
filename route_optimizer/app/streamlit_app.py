@@ -369,8 +369,13 @@ def render_new_optimization_tab():
                 st.error("❌ 最適化に失敗しました")
 
         except Exception as e:
-            logger.error(f"最適化エラー: {e}", exc_info=True)
-            st.error(f"❌ 最適化エラー: {str(e)}")
+            # 詳細なエラー情報をログに記録
+            logger.error(f"最適化処理中にエラーが発生しました: {e}", exc_info=True)
+            # ユーザーには一般的なエラーメッセージを表示
+            st.error("❌ 最適化処理中にエラーが発生しました。データを確認して再実行してください。")
+            # デバッグモードでは詳細を表示
+            if os.getenv('DEBUG', 'false').lower() == 'true':
+                st.exception(e)
 
 
 def main():

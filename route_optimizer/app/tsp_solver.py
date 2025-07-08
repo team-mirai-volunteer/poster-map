@@ -15,6 +15,16 @@ class TSPSolver:
 
     def set_distance_matrix(self, matrix: np.ndarray):
         """距離行列を設定"""
+        if matrix is None:
+            raise ValueError("距離行列がNoneです")
+        if not isinstance(matrix, np.ndarray):
+            raise TypeError("距離行列はnumpy配列である必要があります")
+        if matrix.ndim != 2 or matrix.shape[0] != matrix.shape[1]:
+            raise ValueError("距離行列は正方行列である必要があります")
+        if matrix.shape[0] == 0:
+            raise ValueError("距離行列が空です")
+        if np.any(matrix < 0):
+            raise ValueError("距離行列に負の値が含まれています")
         self.distance_matrix = matrix
         self.n = len(matrix)
 
