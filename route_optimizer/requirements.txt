@@ -1,0 +1,6 @@
+streamlit==1.33.0
+pandas==2.0.3
+requests==2.31.0
+openrouteservice==2.3.3
+numpy==1.24.3
+google-cloud-storage==2.10.0

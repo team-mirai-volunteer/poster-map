@@ -1,0 +1,89 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Virtual environments
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# Environment variables (keep example)
+.env.*
+!.env.example
+
+# Google Cloud credentials
+service-account-key.json
+*.json
+credentials.json
+.google/
+
+# Streamlit
+.streamlit/secrets.toml
+
+# Application specific
+app.log
+*.log
+/app/storage/
+/storage/
+
+# Testing
+.coverage
+htmlcov/
+.pytest_cache/
+.mypy_cache/
+.tox/
+.nox/
+nosetests.xml
+coverage.xml
+*.cover
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.spyderproject
+.spyproject
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Docker
+.dockerignore
+
+# Jupyter
+.ipynb_checkpoints
+
+# Temporary files
+*.tmp
+*.temp
+.api_key_temp
+
+# Local development
+.dev
+.local

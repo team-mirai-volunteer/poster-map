@@ -19,3 +19,9 @@ variable "openrouter_api_key" {
   type        = string
   sensitive   = true
 }
+
+variable "openrouteservice_api_key" {
+  description = "OpenRouteService API Key for route optimizer"
+  type        = string
+  sensitive   = true
+}
