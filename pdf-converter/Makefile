@@ -27,7 +27,7 @@ setup-secrets:
 	@read -p "Enter your OpenRouter API key: " api_key; \
 	echo "$$api_key" | gcloud secrets create openrouter-api-key --data-file=-
 
-deploy:
+deploy: build
 	gcloud run deploy $(SERVICE_NAME) \
 		--image $(IMAGE_NAME) \
 		--platform managed \
