@@ -213,7 +213,7 @@ def addresses_roughly_match(addr1, addr2, threshold=None):
 def get_best_latlng(index, address, api_key, gsi_check=True, distance_threshold=200, priority="gsi", 
                     mode="distance", reverse_geocode_check=False, note_out=None, logger=None):
     lat1, lon1 = get_gmap_latlng(address, api_key)
-    lat2, lon2 = get_gsi_latlng(address)
+    lat2, lon2 = get_gsi_latlng(address) if gsi_check else (None, None)
 
     if lat1 is None and lat2 is None:
         if logger: logger(f"警告: '{address}' の座標取得に失敗しました。")
@@ -360,12 +360,15 @@ def process_csv_data(
 
     return results
 
-def get_prefecture_from_partial_address(partial_address: str) -> str:
+def get_prefecture_from_partial_address(partial_address: str, use_gsi: bool = True) -> str:
     url = "https://msearch.gsi.go.jp/address-search/AddressSearch"
     params = {
         "q": partial_address
     }
 
+    if not use_gsi:
+        return "都道府県の自動判定は無効です（Googleのみモード）"
+    
     try:
         response = requests.get(url, params=params, timeout=10)
         response.raise_for_status()
