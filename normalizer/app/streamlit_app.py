@@ -19,9 +19,9 @@ st.sidebar.markdown("---")
 st.sidebar.subheader("座標検証設定")
 mode = st.sidebar.selectbox(
     "検証モード", 
-    options=["distance", "reverse_geocode"], 
-    format_func=lambda x: "距離チェック" if x=="distance" else "逆引きチェック",
-    help="距離チェック：Google APIと国土地理院APIの座標を比較\n逆引きチェック：逆ジオコーディングで住所を検証"
+    options=["distance", "reverse_geocode", "google_only"], 
+    format_func=lambda x: "距離チェック" if x=="distance" else "逆引きチェック" if x=="reverse_geocode" else "Googleのみ使用",
+    help="距離チェック：Google APIと国土地理院APIの座標を比較\n逆引きチェック：逆ジオコーディングで住所を検証\nGoogleのみ使用：国土地理院APIを一切使用しない"
 )
 
 if mode == "distance":
@@ -30,12 +30,19 @@ if mode == "distance":
     gsi_distance = st.sidebar.number_input("座標ズレ閾値（メートル）", value=200, min_value=0, max_value=10000, step=10)
     priority = st.sidebar.selectbox("閾値超時に優先するAPI", options=["gsi", "google"], format_func=lambda x: "国土地理院" if x=="gsi" else "Google")
     reverse_geocode_check = False
-else:
+elif mode == "reverse_geocode":
     st.sidebar.markdown("**逆引きチェック設定**")
     reverse_geocode_check = st.sidebar.checkbox("逆ジオコーディングチェックを有効化", value=True, help="Google APIで取得した座標を逆引きして住所の一致を確認")
     gsi_check = True
     gsi_distance = 200
     priority = "gsi"
+else:
+    st.sidebar.markdown("**Googleのみ使用設定**")
+    st.sidebar.info("国土地理院APIを一切使用せず、Google Maps APIのみで座標を取得します。")
+    gsi_check = False
+    gsi_distance = 200
+    priority = "google"
+    reverse_geocode_check = False
 
 st.title("📍 CSV正規化ツール")
 st.write("ポスター掲示場所等のCSVを正規化し、Google Maps APIを使って緯度経度を付与します。距離チェックまたは逆引きチェックで座標の品質を検証できます。")
@@ -93,7 +100,7 @@ if csv_file is not None and df is not None:
     addr_col_guess = next((c for c in col_names if "住" in c), col_names[0] if col_names else "")
     name_col_guess = next((c for c in col_names if "名" in c), col_names[1] if len(col_names) > 1 else "")
     addr_right = extract_address_like_text_from_last_row(df)
-    pref_val = get_prefecture_from_partial_address(city_val + addr_right)
+    pref_val = get_prefecture_from_partial_address(city_val + addr_right, use_gsi=(mode != "google_only"))
 
 st.header("2. 設定を構成")
 pref_val = st.text_input("都道府県（prefecture: 固定値）", value=pref_val)
