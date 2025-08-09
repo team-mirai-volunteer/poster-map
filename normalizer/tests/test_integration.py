@@ -2,7 +2,7 @@
 
 import sys
 import os
-sys.path.append('app')
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'app')))
 
 from geo_processor import clean_address_duplicates
 
@@ -61,10 +61,10 @@ def test_integration_duplicate_removal():
         print(f"  Input Address: {case['address']}")
         print(f"  Expected: {case['expected']}")
         print(f"  Got: {result}")
-        print(f"  Result: {'✅ PASS' if passed else '❌ FAIL'}")
+        print(f"  Result: {'[PASS]' if passed else '[FAIL]'}")
         print()
     
-    print(f"Overall Result: {'✅ ALL TESTS PASSED' if all_passed else '❌ SOME TESTS FAILED'}")
+    print(f"Overall Result: {'[SUCCESS] ALL TESTS PASSED' if all_passed else '[FAILED] SOME TESTS FAILED'}")
     return all_passed
 
 if __name__ == "__main__":

@@ -101,6 +101,33 @@ def get_gsi_latlng(address):
     except Exception:
         return None, None
 
+def get_jageocoder_latlng(address, area=None):
+    url = "http://jageocoder.tsuruharu.com/geocode"
+    params = {"addr": address}
+    if area:
+        params["area"] = area
+    try:
+        res = requests.get(url, params=params, timeout=10)
+        res.raise_for_status()
+        result = res.json()
+        # レスポンスはリスト形式で返ってくる
+        if result and isinstance(result, list) and len(result) > 0:
+            first_result = result[0]
+            if isinstance(first_result, dict) and "node" in first_result:
+                node = first_result["node"]
+                # x, yフィールドを使用（lon, lat）
+                if "x" in node and "y" in node:
+                    lon = node["x"]  # x = longitude
+                    lat = node["y"]  # y = latitude
+                    if not (20 <= lat <= 46 and 122 <= lon <= 154):
+                        return None, None
+                    return lat, lon
+        return None, None
+    except requests.exceptions.Timeout:
+        return None, None
+    except Exception:
+        return None, None
+
 def reverse_geocode_google(lat, lng, api_key):
     url = "https://maps.googleapis.com/maps/api/geocode/json"
     params = {"latlng": f"{lat},{lng}", "key": api_key, "language": "ja"}
@@ -111,6 +138,44 @@ def reverse_geocode_google(lat, lng, api_key):
             return data["results"][0]["formatted_address"]
         else:
             return None
+    except Exception:
+        return None
+
+def reverse_geocode_jageocoder(lat, lng, level=7):
+    """
+    Jageocoder APIの逆ジオコーディング
+    
+    Args:
+        lat (float): 緯度
+        lng (float): 経度
+        level (int): 住所レベル (1-8, デフォルト7=番地レベル)
+        
+    Returns:
+        str or None: 住所文字列、取得失敗時はNone
+    """
+    url = "http://jageocoder.tsuruharu.com/rgeocode"
+    params = {
+        "lat": lat,
+        "lon": lng,
+        "level": level
+    }
+    try:
+        res = requests.get(url, params=params, timeout=10)
+        res.raise_for_status()
+        result = res.json()
+        
+        # レスポンスはリスト形式で返ってくる
+        if result and isinstance(result, list) and len(result) > 0:
+            first_result = result[0]
+            if isinstance(first_result, dict) and "candidate" in first_result:
+                candidate = first_result["candidate"]
+                if "fullname" in candidate and isinstance(candidate["fullname"], list):
+                    # fullnameの配列を連結して住所文字列を作成
+                    address_parts = candidate["fullname"]
+                    return "".join(address_parts)
+        return None
+    except requests.exceptions.Timeout:
+        return None
     except Exception:
         return None
 
@@ -211,11 +276,26 @@ def addresses_roughly_match(addr1, addr2, threshold=None):
     return core1 == core2
 
 def get_best_latlng(index, address, api_key, gsi_check=True, distance_threshold=200, priority="gsi", 
-                    mode="distance", reverse_geocode_check=False, note_out=None, logger=None):
-    lat1, lon1 = get_gmap_latlng(address, api_key)
-    lat2, lon2 = get_gsi_latlng(address) if gsi_check else (None, None)
+                    mode="distance", reverse_geocode_check=False, note_out=None, logger=None,
+                    jageocoder_check=False, area=None):
+    # 各モードに応じてAPIを呼び出す
+    if priority == "gsi" and mode in ["gsi_only"]:
+        # 国土地理院のみモード
+        lat1, lon1 = None, None
+        lat2, lon2 = get_gsi_latlng(address)
+        lat3, lon3 = None, None
+    elif priority == "jageocoder" and mode in ["jageocoder_only"]:
+        # Jageocoderのみモード
+        lat1, lon1 = None, None
+        lat2, lon2 = None, None
+        lat3, lon3 = get_jageocoder_latlng(address, area)
+    else:
+        # 通常モード（複数API使用）
+        lat1, lon1 = get_gmap_latlng(address, api_key) if api_key else (None, None)
+        lat2, lon2 = get_gsi_latlng(address) if gsi_check else (None, None)
+        lat3, lon3 = get_jageocoder_latlng(address, area) if jageocoder_check else (None, None)
 
-    if lat1 is None and lat2 is None:
+    if lat1 is None and lat2 is None and lat3 is None:
         if logger: logger(f"警告: '{address}' の座標取得に失敗しました。")
         if note_out is not None:
             note_out.append("緯度経度は怪しい")
@@ -244,27 +324,80 @@ def get_best_latlng(index, address, api_key, gsi_check=True, distance_threshold=
 
     # 距離チェックモード（従来方式）
     if mode == "distance":
-        if lat1 is not None and lat2 is None:
-            return lat1, lon1, "google"
-        if lat2 is not None and lat1 is None:
-            return lat2, lon2, "gsi"
-        dist = haversine(lat1, lon1, lat2, lon2)
-        if gsi_check and dist >= distance_threshold:
-            if logger:
-                pre_msg = f"警告: {index}行目 '{address}' のGoogle座標と国土地理院座標が {int(dist)}m ズレ。"
-                if priority == "gsi":
-                    logger(pre_msg + "国土地理院APIの座標を採用します。")
-                elif priority == "google":
-                    logger(pre_msg + "Google座標を採用します。")
-            if note_out is not None:
-                note_out.append("緯度経度は怪しい")
-            return (lat2, lon2, "gsi") if priority == "gsi" else (lat1, lon1, "google")
-        return lat1, lon1, "google"
+        # 使用可能な座標を集める
+        coords = []
+        if lat1 is not None:
+            coords.append(("google", lat1, lon1))
+        if lat2 is not None:
+            coords.append(("gsi", lat2, lon2))
+        if lat3 is not None:
+            coords.append(("jageocoder", lat3, lon3))
+        
+        # 1つしか取得できなかった場合
+        if len(coords) == 1:
+            return coords[0][1], coords[0][2], coords[0][0]
+        
+        # 複数取得できた場合、距離を比較
+        if len(coords) >= 2:
+            distances = {}
+            for i in range(len(coords)):
+                for j in range(i + 1, len(coords)):
+                    name1, lat_i, lon_i = coords[i]
+                    name2, lat_j, lon_j = coords[j]
+                    dist = haversine(lat_i, lon_i, lat_j, lon_j)
+                    distances[f"{name1}-{name2}"] = dist
+            
+            # 最大距離が閾値を超える場合
+            max_dist = max(distances.values())
+            if max_dist >= distance_threshold:
+                # 優先順位に基づいて選択するAPIを決定
+                selected_api = None
+                if priority == "gsi" and lat2 is not None:
+                    selected_api = "gsi"
+                    selected_lat, selected_lon = lat2, lon2
+                elif priority == "jageocoder" and lat3 is not None:
+                    selected_api = "jageocoder"
+                    selected_lat, selected_lon = lat3, lon3
+                else:
+                    selected_api = "google"
+                    selected_lat, selected_lon = lat1, lon1
+                
+                if logger:
+                    # 閾値を超えるAPI間のズレをすべて報告
+                    over_threshold_pairs = []
+                    for pair, dist in distances.items():
+                        if dist >= distance_threshold:
+                            # API名を読みやすく変換
+                            api1, api2 = pair.split('-')
+                            api1_name = {"google": "Google", "gsi": "国土地理院", "jageocoder": "Jageocoder"}.get(api1, api1)
+                            api2_name = {"google": "Google", "gsi": "国土地理院", "jageocoder": "Jageocoder"}.get(api2, api2)
+                            over_threshold_pairs.append(f"{int(dist)}m（{api1_name}-{api2_name}間）")
+                    
+                    # 採用するAPIの名前を変換
+                    selected_api_name = {"google": "Google", "gsi": "国土地理院", "jageocoder": "Jageocoder"}.get(selected_api, selected_api)
+                    
+                    if over_threshold_pairs:
+                        logger(f"警告: {index}行目 '{address}' の座標間に閾値を超えるズレがあります: " + ", ".join(over_threshold_pairs) + f"。{selected_api_name}座標を採用します。")
+                
+                if note_out is not None:
+                    note_out.append("緯度経度は怪しい")
+                
+                return selected_lat, selected_lon, selected_api
+            
+            # すべてが閾値以内の場合、優先順位に基づいて選択
+            if priority == "gsi" and lat2 is not None:
+                return lat2, lon2, "gsi"
+            elif priority == "jageocoder" and lat3 is not None:
+                return lat3, lon3, "jageocoder"
+            else:
+                return lat1, lon1, "google"
 
     if lat1 is not None:
         return lat1, lon1, "google"
     if lat2 is not None:
         return lat2, lon2, "gsi"
+    if lat3 is not None:
+        return lat3, lon3, "jageocoder"
     if note_out is not None:
         note_out.append("緯度経度は怪しい")
     return None, None, "none"
@@ -289,7 +422,8 @@ def render_template(index, template_str, row, cache, full_api_address, api_key, 
 
 def process_csv_data(
     csv_data, config, progress_callback=None, log_callback=None,
-    gsi_check=True, gsi_distance=200, priority="gsi", mode="distance", reverse_geocode_check=False
+    gsi_check=True, gsi_distance=200, priority="gsi", mode="distance", reverse_geocode_check=False,
+    jageocoder_check=False
 ):
     format_config = config["format"]
     header = list(format_config.keys())
@@ -332,8 +466,11 @@ def process_csv_data(
         full_api_address = f"{format_config['prefecture']}{format_config['city']}{cleaned_address}"
 
         # 緯度経度（note_listを渡してget_best_latlng内でnote列をセット）
+        # Jageocoderのareaパラメータ用に都道府県を取得
+        area = format_config.get('prefecture', '')
         lat, lng, source = get_best_latlng(
-            idx, full_api_address, api_key, gsi_check, gsi_distance, priority, mode, reverse_geocode_check, note_list, log_callback
+            idx, full_api_address, api_key, gsi_check, gsi_distance, priority, mode, reverse_geocode_check, note_list, log_callback,
+            jageocoder_check, area
         )
         cache["latlng"] = (lat, lng)
         cache["source"] = source

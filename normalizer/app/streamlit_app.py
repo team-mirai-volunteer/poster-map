@@ -19,33 +19,66 @@ st.sidebar.markdown("---")
 st.sidebar.subheader("座標検証設定")
 mode = st.sidebar.selectbox(
     "検証モード", 
-    options=["distance", "reverse_geocode", "google_only"], 
-    format_func=lambda x: "距離チェック" if x=="distance" else "逆引きチェック" if x=="reverse_geocode" else "Googleのみ使用",
-    help="距離チェック：Google APIと国土地理院APIの座標を比較\n逆引きチェック：逆ジオコーディングで住所を検証\nGoogleのみ使用：国土地理院APIを一切使用しない"
+    options=["distance", "reverse_geocode", "google_only", "gsi_only", "jageocoder_only"], 
+    format_func=lambda x: {
+        "distance": "距離チェック",
+        "reverse_geocode": "逆引きチェック", 
+        "google_only": "Googleのみ使用",
+        "gsi_only": "国土地理院のみ使用",
+        "jageocoder_only": "Jageocoderのみ使用"
+    }.get(x, x),
+    help="距離チェック：複数のAPIの座標を比較して品質を検証\n逆引きチェック：逆ジオコーディングで住所を検証\nGoogleのみ：Google Maps APIのみ使用\n国土地理院のみ：国土地理院APIのみ使用\nJageocoderのみ：Jageocoder APIのみ使用"
 )
 
 if mode == "distance":
     st.sidebar.markdown("**距離チェック設定**")
-    gsi_check = st.sidebar.checkbox("Google＋国土地理院API両方を使う", value=True)
+    gsi_check = st.sidebar.checkbox("国土地理院APIを使う", value=True)
+    jageocoder_check = st.sidebar.checkbox("Jageocoder APIを使う", value=False)
     gsi_distance = st.sidebar.number_input("座標ズレ閾値（メートル）", value=200, min_value=0, max_value=10000, step=10)
-    priority = st.sidebar.selectbox("閾値超時に優先するAPI", options=["gsi", "google"], format_func=lambda x: "国土地理院" if x=="gsi" else "Google")
+    priority_options = ["google"]
+    priority_format = {"google": "Google"}
+    if gsi_check:
+        priority_options.append("gsi")
+        priority_format["gsi"] = "国土地理院"
+    if jageocoder_check:
+        priority_options.append("jageocoder")
+        priority_format["jageocoder"] = "Jageocoder"
+    priority = st.sidebar.selectbox("閾値超時に優先するAPI", options=priority_options, format_func=lambda x: priority_format[x])
     reverse_geocode_check = False
 elif mode == "reverse_geocode":
     st.sidebar.markdown("**逆引きチェック設定**")
     reverse_geocode_check = st.sidebar.checkbox("逆ジオコーディングチェックを有効化", value=True, help="Google APIで取得した座標を逆引きして住所の一致を確認")
     gsi_check = True
+    jageocoder_check = st.sidebar.checkbox("Jageocoder APIも使う", value=False)
     gsi_distance = 200
     priority = "gsi"
-else:
+elif mode == "google_only":
     st.sidebar.markdown("**Googleのみ使用設定**")
-    st.sidebar.info("国土地理院APIを一切使用せず、Google Maps APIのみで座標を取得します。")
+    st.sidebar.info("Google Maps APIのみで座標を取得します。")
     gsi_check = False
+    jageocoder_check = False
     gsi_distance = 200
     priority = "google"
     reverse_geocode_check = False
+elif mode == "gsi_only":
+    st.sidebar.markdown("**国土地理院のみ使用設定**")
+    st.sidebar.info("国土地理院APIのみで座標を取得します。APIキーは不要です。")
+    gsi_check = True
+    jageocoder_check = False
+    gsi_distance = 200
+    priority = "gsi"
+    reverse_geocode_check = False
+else:  # jageocoder_only
+    st.sidebar.markdown("**Jageocoderのみ使用設定**")
+    st.sidebar.info("Jageocoder APIのみで座標を取得します。APIキーは不要です。")
+    gsi_check = False
+    jageocoder_check = True
+    gsi_distance = 200
+    priority = "jageocoder"
+    reverse_geocode_check = False
 
 st.title("📍 CSV正規化ツール")
-st.write("ポスター掲示場所等のCSVを正規化し、Google Maps APIを使って緯度経度を付与します。距離チェックまたは逆引きチェックで座標の品質を検証できます。")
+st.write("ポスター掲示場所等のCSVを正規化し、選択したAPIを使って緯度経度を付与します。複数のAPIで座標の品質を検証することもできます。")
 
 st.header("1. CSVファイルをアップロード")
 csv_file = st.file_uploader("CSVファイルを選択してください", type=["csv"])
@@ -146,7 +179,8 @@ if st.button("CSV正規化を実行"):
     
     if df is not None:
         if "lat" in output_columns or "long" in output_columns:
-            if not os.environ.get("GOOGLE_MAPS_API_KEY"):
+            # Google APIを使用するモードの場合のみAPIキーを要求
+            if mode not in ["gsi_only", "jageocoder_only"] and not os.environ.get("GOOGLE_MAPS_API_KEY"):
                 st.error("Google Maps APIキーが設定されていません。環境変数 GOOGLE_MAPS_API_KEY を設定してください。")
                 st.stop()
         try:
@@ -178,6 +212,9 @@ if st.button("CSV正規化を実行"):
             info_placeholder = st.empty()
             info_placeholder.info("処理中…しばらくお待ちください")
             
+            # modeパラメータをそのまま渡す
+            actual_mode = mode
+            
             results = process_csv_data(
                 csv_data,
                 config,
@@ -186,8 +223,9 @@ if st.button("CSV正規化を実行"):
                 gsi_check=gsi_check,
                 gsi_distance=int(gsi_distance),
                 priority=priority,
-                mode=mode,
-                reverse_geocode_check=reverse_geocode_check
+                mode=actual_mode,
+                reverse_geocode_check=reverse_geocode_check,
+                jageocoder_check=jageocoder_check
             )
             
             output_header = ["prefecture", "city"] + list(output_columns)

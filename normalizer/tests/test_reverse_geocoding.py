@@ -4,7 +4,7 @@ Test script for reverse geocoding functionality
 """
 import sys
 import os
-sys.path.append('app')
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'app')))
 
 from geo_processor import (
     normalize_japanese_address, 
@@ -85,9 +85,19 @@ def test_duplicate_removal():
         print(f"Match: {result == expected}")
         print()
 
+def test_reverse_geocoding_validation():
+    """逆ジオコーディング検証テストのエントリポイント"""
+    try:
+        test_normalize_japanese_address()
+        test_addresses_roughly_match()
+        test_duplicate_removal()
+        return True
+    except Exception as e:
+        print(f"Error: {e}")
+        return False
+
 if __name__ == "__main__":
     print("Testing reverse geocoding functions...")
-    test_normalize_japanese_address()
-    test_addresses_roughly_match()
-    test_duplicate_removal()
-    print("Test completed!")
+    success = test_reverse_geocoding_validation()
+    print("Test completed!" if success else "Test failed!")
+    sys.exit(0 if success else 1)
