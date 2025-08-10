@@ -133,6 +133,9 @@ def run_all_tests():
             print(f"{test_name}: [FAIL]")
     print("-" * 60)
     
+    # pytest用の最終アサーション
+    assert all_passed, f"Some tests failed. Results: {test_results}"
+    
     if all_passed:
         print("[SUCCESS] すべてのテストが成功しました！")
         return 0

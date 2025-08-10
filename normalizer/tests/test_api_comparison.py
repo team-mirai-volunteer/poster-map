@@ -86,7 +86,7 @@ def test_api_responses_direct():
         gsi_lat, gsi_lon = get_gsi_latlng(address)
         jageocoder_lat, jageocoder_lon = get_jageocoder_latlng(address)
         
-        if gsi_lat and jageocoder_lat:
+        if gsi_lat is not None and jageocoder_lat is not None:
             distance = haversine(gsi_lat, gsi_lon, jageocoder_lat, jageocoder_lon)
             print(f"  国土地理院: {gsi_lat:.6f}, {gsi_lon:.6f}")
             print(f"  Jageocoder: {jageocoder_lat:.6f}, {jageocoder_lon:.6f}")
@@ -99,9 +99,9 @@ def test_api_responses_direct():
             else:
                 print(f"  [OK] 座標に差異あり（別々のデータソース）")
         else:
-            if not gsi_lat:
+            if gsi_lat is None:
                 print("  国土地理院: 座標取得失敗")
-            if not jageocoder_lat:
+            if jageocoder_lat is None:
                 print("  Jageocoder: 座標取得失敗")
         
         print("\n" + "=" * 80 + "\n")
@@ -129,7 +129,7 @@ def analyze_data_source():
         gsi_lat, gsi_lon = get_gsi_latlng(address)
         jageocoder_lat, jageocoder_lon = get_jageocoder_latlng(address)
         
-        if gsi_lat and jageocoder_lat:
+        if gsi_lat is not None and jageocoder_lat is not None:
             distance = haversine(gsi_lat, gsi_lon, jageocoder_lat, jageocoder_lon)
             if distance < 1.0:
                 identical_count += 1

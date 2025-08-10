@@ -55,6 +55,9 @@ def test_integration_duplicate_removal():
         passed = result == case["expected"]
         all_passed = all_passed and passed
         
+        # pytest用の明示的なアサーション
+        assert result == case["expected"], f"Test Case {i} failed: expected '{case['expected']}', got '{result}'"
+        
         print(f"Test Case {i}: {case['description']}")
         print(f"  Prefecture: {case['prefecture']}")
         print(f"  City: {case['city']}")
@@ -65,6 +68,10 @@ def test_integration_duplicate_removal():
         print()
     
     print(f"Overall Result: {'[SUCCESS] ALL TESTS PASSED' if all_passed else '[FAILED] SOME TESTS FAILED'}")
+    
+    # pytest用の最終アサーション
+    assert all_passed, "Some integration tests failed"
+    
     return all_passed
 
 if __name__ == "__main__":

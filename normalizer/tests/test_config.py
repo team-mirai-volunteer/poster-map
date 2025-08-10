@@ -33,6 +33,11 @@ def check_api_endpoints():
     Returns:
         dict: 各APIエンドポイントの有効性
     """
+    import sys
+    import os
+    
+    # __file__を基点とした安定的なパス解決
+    sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'app'))
     from constants import API_ENDPOINTS
     
     return {
@@ -66,6 +71,11 @@ def skip_if_endpoint_disabled(endpoint_name):
 
 def print_test_environment():
     """テスト環境の情報を表示"""
+    import sys
+    import os
+    
+    # __file__を基点とした安定的なパス解決
+    sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'app'))
     from constants import API_ENDPOINTS
     
     print("=== Test Environment ===")

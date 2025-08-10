@@ -1,5 +1,6 @@
 # Environment files
 .env
+!.env.example
 .api_key_temp
 
 # Python

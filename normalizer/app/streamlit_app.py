@@ -230,8 +230,17 @@ if st.button("CSV正規化を実行", disabled=button_disabled):
     
     if df is not None:
         if "lat" in output_columns or "long" in output_columns:
-            if mode not in ["gsi_only", "jageocoder_only"] and not os.environ.get("GOOGLE_MAPS_API_KEY"):
-                st.error("Google Maps APIキーが設定されていません。環境変数 GOOGLE_MAPS_API_KEY を設定してください。")
+            # Google APIが実際に必要な場合のチェック
+            google_api_needed = False
+            if mode == "google_only":
+                google_api_needed = True
+            elif mode == "distance" and not (gsi_check or jageocoder_check):
+                google_api_needed = True  # Googleのみが有効な場合
+            elif mode == "reverse_geocode" and google_reverse_check:
+                google_api_needed = True
+            
+            if google_api_needed and not os.environ.get("GOOGLE_MAPS_API_KEY"):
+                st.error("選択されたモードではGoogle Maps APIキーが必要です。環境変数 GOOGLE_MAPS_API_KEY を設定してください。")
                 st.stop()
         try:
             colmap = {col: idx for idx, col in enumerate(df.columns)}

@@ -5,7 +5,9 @@
 
 import sys
 import os
-sys.path.insert(0, os.path.abspath('app'))
+
+# __file__を基点とした安定的なパス解決
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'app'))
 
 from geo_processor import get_best_latlng
 
@@ -153,6 +155,9 @@ def test_mode_consistency():
             priority="google"
         )
         
+        # pytest用の明示的なアサーション
+        assert len(result) == 6, f"_get_coordinates_by_mode should return 6 values, but returned {len(result)}"
+        
         if len(result) == 6:
             print("  [OK] _get_coordinates_by_mode: 6つの値を正しく返す")
         else:
@@ -168,6 +173,9 @@ def test_mode_consistency():
         print("[SUCCESS] すべてのテストが成功しました")
     else:
         print("[FAILURE] 一部のテストが失敗しました")
+    
+    # pytest用の最終アサーション
+    assert all_passed, "Some mode consistency tests failed"
     
     return all_passed
 

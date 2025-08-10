@@ -241,6 +241,10 @@ def main():
     
     print("\n" + "=" * 50)
     all_tests_passed = test1_passed and test2_passed and test3_passed and test4_passed
+    
+    # pytest用の最終アサーション
+    assert all_tests_passed, "Some Jageocoder tests failed"
+    
     if all_tests_passed:
         print("[SUCCESS] すべてのテストが成功しました")
         return 0

@@ -83,6 +83,9 @@ def test_duplicate_removal():
         print(f"Prefecture: {pref}, City: {city}, Address: {addr}")
         print(f"Expected: {expected}, Got: {result}")
         print(f"Match: {result == expected}")
+        
+        # pytest用の明示的なアサーション
+        assert result == expected, f"Duplicate removal test failed: expected '{expected}', got '{result}' for address '{addr}'"
         print()
 
 def test_reverse_geocoding_validation():

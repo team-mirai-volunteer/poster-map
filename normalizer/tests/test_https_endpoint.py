@@ -29,16 +29,17 @@ def test_https_availability():
     http_base = base_url.replace("https://", "http://")
     https_base = base_url.replace("http://", "https://")
     
+    # セキュリティのためHTTPSを優先し、HTTPテストは明示的な場合のみ
     endpoints = [
         {
-            "name": "HTTP (現在使用中)",
-            "geocode": f"{http_base}/geocode",
-            "reverse": f"{http_base}/rgeocode"
-        },
-        {
-            "name": "HTTPS (テスト)",
+            "name": "HTTPS (推奨)",
             "geocode": f"{https_base}/geocode",
             "reverse": f"{https_base}/rgeocode"
+        },
+        {
+            "name": "HTTP (非推奨・テスト用)",
+            "geocode": f"{http_base}/geocode",
+            "reverse": f"{http_base}/rgeocode"
         }
     ]
     
@@ -96,8 +97,9 @@ def test_https_availability():
         print()
     
     print("【結論】")
+    print("セキュリティのため、HTTPSエンドポイントの使用を推奨します。")
     print("HTTPSエンドポイントが利用可能な場合は、constants.pyのAPI_ENDPOINTSを更新してください。")
-    print("現状はHTTPエンドポイントを使用しています。")
+    print("HTTPは非推奨です（住所情報の平文送信リスクあり）。")
 
 def test_https_endpoints():
     """統合テスト用のエントリーポイント"""
@@ -124,8 +126,8 @@ def test_https_endpoints():
         https_base = base_url.replace("http://", "https://")
         
         for endpoint_name, endpoint_data in [
-            ("HTTP Jageocoder", f"{http_base}/geocode"),
-            ("HTTPS Jageocoder", f"{https_base}/geocode")
+            ("HTTPS Jageocoder", f"{https_base}/geocode"),
+            ("HTTP Jageocoder", f"{http_base}/geocode")
         ]:
             endpoints_tested += 1
             try:
