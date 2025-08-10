@@ -16,36 +16,93 @@ def run_all_tests():
     print("=" * 60)
     
     all_passed = True
+    test_results = {}
     
     # 1. 住所重複削除テスト
-    print("\n[1/3] 住所重複削除テスト")
+    print("\n[1/6] 住所重複削除テスト")
     print("-" * 40)
-    from test_integration import test_integration_duplicate_removal
-    test1_passed = test_integration_duplicate_removal()
+    try:
+        from test_integration import test_integration_duplicate_removal
+        test1_passed = test_integration_duplicate_removal()
+        test_results["住所重複削除テスト"] = test1_passed
+    except Exception as e:
+        print(f"エラー: {e}")
+        test1_passed = False
+        test_results["住所重複削除テスト"] = False
     all_passed = all_passed and test1_passed
     
     # 2. 逆ジオコーディングテスト
-    print("\n[2/3] 逆ジオコーディングテスト")
+    print("\n[2/6] 逆ジオコーディングテスト")
     print("-" * 40)
-    from test_reverse_geocoding import test_reverse_geocoding_validation
-    test2_passed = test_reverse_geocoding_validation()
+    try:
+        from test_reverse_geocoding import test_reverse_geocoding_validation
+        test2_passed = test_reverse_geocoding_validation()
+        test_results["逆ジオコーディングテスト"] = test2_passed
+    except Exception as e:
+        print(f"エラー: {e}")
+        test2_passed = False
+        test_results["逆ジオコーディングテスト"] = False
     all_passed = all_passed and test2_passed
     
     # 3. Jageocoder APIテスト
-    print("\n[3/3] Jageocoder APIテスト")
+    print("\n[3/6] Jageocoder APIテスト")
     print("-" * 40)
-    from test_jageocoder import main as test_jageocoder_main
-    test3_result = test_jageocoder_main()
-    test3_passed = (test3_result == 0)
+    try:
+        from test_jageocoder import main as test_jageocoder_main
+        test3_result = test_jageocoder_main()
+        test3_passed = (test3_result == 0)
+        test_results["Jageocoder APIテスト"] = test3_passed
+    except Exception as e:
+        print(f"エラー: {e}")
+        test3_passed = False
+        test_results["Jageocoder APIテスト"] = False
     all_passed = all_passed and test3_passed
+    
+    # 4. API比較テスト
+    print("\n[4/6] API比較テスト")
+    print("-" * 40)
+    try:
+        from test_api_comparison import test_api_comparison
+        test4_passed = test_api_comparison()
+        test_results["API比較テスト"] = test4_passed
+    except Exception as e:
+        print(f"エラー: {e}")
+        test4_passed = False
+        test_results["API比較テスト"] = False
+    all_passed = all_passed and test4_passed
+    
+    # 5. HTTPSエンドポイントテスト
+    print("\n[5/6] HTTPSエンドポイントテスト")
+    print("-" * 40)
+    try:
+        from test_https_endpoint import test_https_endpoints
+        test5_passed = test_https_endpoints()
+        test_results["HTTPSエンドポイントテスト"] = test5_passed
+    except Exception as e:
+        print(f"エラー: {e}")
+        test5_passed = False
+        test_results["HTTPSエンドポイントテスト"] = False
+    all_passed = all_passed and test5_passed
+    
+    # 6. モード一貫性テスト
+    print("\n[6/6] モード一貫性テスト")
+    print("-" * 40)
+    try:
+        from test_mode_consistency import test_mode_consistency
+        test6_passed = test_mode_consistency()
+        test_results["モード一貫性テスト"] = test6_passed
+    except Exception as e:
+        print(f"エラー: {e}")
+        test6_passed = False
+        test_results["モード一貫性テスト"] = False
+    all_passed = all_passed and test6_passed
     
     # 結果のサマリー
     print("\n" + "=" * 60)
     print("テスト結果サマリー")
     print("=" * 60)
-    print(f"住所重複削除テスト: {'[PASS]' if test1_passed else '[FAIL]'}")
-    print(f"逆ジオコーディングテスト: {'[PASS]' if test2_passed else '[FAIL]'}")
-    print(f"Jageocoder APIテスト: {'[PASS]' if test3_passed else '[FAIL]'}")
+    for test_name, passed in test_results.items():
+        print(f"{test_name}: {'[PASS]' if passed else '[FAIL]'}")
     print("-" * 60)
     
     if all_passed:

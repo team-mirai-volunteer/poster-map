@@ -150,7 +150,17 @@ def analyze_data_source():
     else:
         print("データが不足しているため判断できません。")
 
+def test_api_comparison():
+    """統合テスト用のエントリーポイント"""
+    try:
+        test_api_responses_direct()
+        print("\n" + "=" * 80 + "\n")
+        analyze_data_source()
+        return True
+    except Exception as e:
+        print(f"Error: {e}")
+        return False
+
 if __name__ == "__main__":
-    test_api_responses_direct()
-    print("\n" + "=" * 80 + "\n")
-    analyze_data_source()
+    result = test_api_comparison()
+    sys.exit(0 if result else 1)

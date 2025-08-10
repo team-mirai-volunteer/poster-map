@@ -298,7 +298,7 @@ def addresses_roughly_match(addr1, addr2, threshold=None):
     core2 = normalize_japanese_address(addr2)
     return core1 == core2
 
-def _get_coordinates_by_mode(address, api_key, mode, gsi_check, jageocoder_check, area, priority):
+def _get_coordinates_by_mode(address, api_key, mode, gsi_check, jageocoder_check, area, priority, google_reverse_check=True):
     """モードに応じてAPIから座標を取得"""
     if priority == "gsi" and mode in ["gsi_only"]:
         # 国土地理院のみモード
@@ -310,12 +310,14 @@ def _get_coordinates_by_mode(address, api_key, mode, gsi_check, jageocoder_check
         return None, None, None, None, lat3, lon3
     else:
         # 通常モード（複数API使用）
-        lat1, lon1 = get_gmap_latlng(address, api_key) if api_key else (None, None)
+        # reverse_geocodeモードではgoogle_reverse_checkの設定を考慮
+        use_google = api_key and (mode != "reverse_geocode" or google_reverse_check)
+        lat1, lon1 = get_gmap_latlng(address, api_key) if use_google else (None, None)
         lat2, lon2 = get_gsi_latlng(address) if gsi_check else (None, None)
         lat3, lon3 = get_jageocoder_latlng(address, area) if jageocoder_check else (None, None)
         return lat1, lon1, lat2, lon2, lat3, lon3
 
-def _handle_reverse_geocode_mode(index, address, lat1, lon1, lat2, lon2, lat3, lon3, api_key, mode, reverse_geocode_check, note_out, logger, priority):
+def _handle_reverse_geocode_mode(index, address, lat1, lon1, lat2, lon2, lat3, lon3, api_key, mode, reverse_geocode_check, note_out, logger, priority, google_reverse_check=True, jageocoder_reverse_check=False):
     """逆ジオコーディングモードの処理"""
     if mode == "reverse_geocode" and reverse_geocode_check:
         # 逆引き結果を収集
@@ -324,8 +326,8 @@ def _handle_reverse_geocode_mode(index, address, lat1, lon1, lat2, lon2, lat3, l
         google_checked = False
         jageocoder_checked = False
         
-        # 1-3. Google座標の逆引きチェック
-        if lat1 is not None:
+        # Google座標の逆引きチェック（チェックボックスがONの場合）
+        if lat1 is not None and google_reverse_check:
             google_checked = True
             rev_addr_google = reverse_geocode_google(lat1, lon1, api_key)
             if rev_addr_google is not None and addresses_roughly_match(address, rev_addr_google):
@@ -334,8 +336,8 @@ def _handle_reverse_geocode_mode(index, address, lat1, lon1, lat2, lon2, lat3, l
                     logger(f"{index}行目: Google座標の逆引きが一致しました。")
                 return lat1, lon1, "google"
         
-        # 4-8. Jageocoder座標の逆引きチェック（チェックボックスがONの場合）
-        if lat3 is not None:
+        # Jageocoder座標の逆引きチェック（チェックボックスがONの場合）
+        if lat3 is not None and jageocoder_reverse_check:
             jageocoder_checked = True
             rev_addr_jageocoder = reverse_geocode_jageocoder(lat3, lon3)
             if rev_addr_jageocoder is not None and addresses_roughly_match(address, rev_addr_jageocoder):
@@ -350,30 +352,50 @@ def _handle_reverse_geocode_mode(index, address, lat1, lon1, lat2, lon2, lat3, l
         
         # 採用するAPIを決定
         selected_lat, selected_lon, selected_api = None, None, "none"
-        if priority == "google" and lat1 is not None:
-            selected_lat, selected_lon, selected_api = lat1, lon1, "google"
-        elif priority == "gsi" and lat2 is not None:
-            selected_lat, selected_lon, selected_api = lat2, lon2, "gsi"
-        elif priority == "jageocoder" and lat3 is not None:
-            selected_lat, selected_lon, selected_api = lat3, lon3, "jageocoder"
-        else:
-            # 優先APIが取得できない場合のフォールバック
+        
+        # priorityに従って座標を採用
+        # 重要: 優先APIの座標がない場合でも、他APIの座標を「優先APIの座標として扱う」
+        if priority == "google":
             if lat1 is not None:
                 selected_lat, selected_lon, selected_api = lat1, lon1, "google"
             elif lat2 is not None:
+                selected_lat, selected_lon, selected_api = lat2, lon2, "google"  # GSI座標をGoogleとして扱う
+            elif lat3 is not None:
+                selected_lat, selected_lon, selected_api = lat3, lon3, "google"  # Jageocoder座標をGoogleとして扱う
+        elif priority == "gsi":
+            if lat2 is not None:
+                selected_lat, selected_lon, selected_api = lat2, lon2, "gsi"
+            elif lat1 is not None:
+                selected_lat, selected_lon, selected_api = lat1, lon1, "gsi"  # Google座標をGSIとして扱う
+            elif lat3 is not None:
+                selected_lat, selected_lon, selected_api = lat3, lon3, "gsi"  # Jageocoder座標をGSIとして扱う
+        elif priority == "jageocoder":
+            if lat3 is not None:
+                selected_lat, selected_lon, selected_api = lat3, lon3, "jageocoder"
+            elif lat2 is not None:
+                selected_lat, selected_lon, selected_api = lat2, lon2, "jageocoder"  # GSI座標をJageocoderとして扡う
+            elif lat1 is not None:
+                selected_lat, selected_lon, selected_api = lat1, lon1, "jageocoder"  # Google座標をJageocoderとして扡う
+        else:
+            # フォールバック（通常は発生しない）
+            if lat2 is not None:
                 selected_lat, selected_lon, selected_api = lat2, lon2, "gsi"
             elif lat3 is not None:
                 selected_lat, selected_lon, selected_api = lat3, lon3, "jageocoder"
+            elif lat1 is not None:
+                selected_lat, selected_lon, selected_api = lat1, lon1, "google"
         
         # 不一致時のログを1行にまとめる
-        if logger and selected_api != "none" and (google_checked and not google_match):
+        if logger and selected_api != "none" and ((google_checked and not google_match) or (jageocoder_checked and not jageocoder_match)):
             api_name = API_DISPLAY_NAMES.get(selected_api, selected_api)
             
             # どのAPIの逆引きが不一致かを判定
-            if google_checked and jageocoder_checked:
+            if google_checked and jageocoder_checked and not google_match and not jageocoder_match:
                 mismatch_apis = "Google座標もJageocoder座標も"
-            elif google_checked:
+            elif google_checked and not google_match:
                 mismatch_apis = "Google座標の"
+            elif jageocoder_checked and not jageocoder_match:
+                mismatch_apis = "Jageocoder座標の"
             else:
                 mismatch_apis = ""
             
@@ -460,11 +482,11 @@ def _handle_distance_check_mode(index, address, lat1, lon1, lat2, lon2, lat3, lo
 
 def get_best_latlng(index, address, api_key, gsi_check=True, distance_threshold=200, priority="gsi", 
                     mode="distance", reverse_geocode_check=False, note_out=None, logger=None,
-                    jageocoder_check=False, area=None):
+                    jageocoder_check=False, area=None, google_reverse_check=True):
     """最適な座標を取得する（リファクタリング済み）"""
     # 各モードに応じてAPIを呼び出す
     lat1, lon1, lat2, lon2, lat3, lon3 = _get_coordinates_by_mode(
-        address, api_key, mode, gsi_check, jageocoder_check, area, priority
+        address, api_key, mode, gsi_check, jageocoder_check, area, priority, google_reverse_check
     )
 
     if lat1 is None and lat2 is None and lat3 is None:
@@ -475,7 +497,7 @@ def get_best_latlng(index, address, api_key, gsi_check=True, distance_threshold=
 
     # 逆ジオコーディングモードの処理
     reverse_result = _handle_reverse_geocode_mode(
-        index, address, lat1, lon1, lat2, lon2, lat3, lon3, api_key, mode, reverse_geocode_check, note_out, logger, priority
+        index, address, lat1, lon1, lat2, lon2, lat3, lon3, api_key, mode, reverse_geocode_check, note_out, logger, priority, google_reverse_check, jageocoder_check
     )
     if reverse_result is not None:
         return reverse_result
@@ -520,7 +542,7 @@ def render_template(index, template_str, row, cache, full_api_address, api_key, 
 def process_csv_data(
     csv_data, config, progress_callback=None, log_callback=None,
     gsi_check=True, gsi_distance=200, priority="gsi", mode="distance", reverse_geocode_check=False,
-    jageocoder_check=False
+    jageocoder_check=False, google_reverse_check=True
 ):
     format_config = config["format"]
     header = list(format_config.keys())
@@ -567,7 +589,7 @@ def process_csv_data(
         area = format_config.get('prefecture', '')
         lat, lng, source = get_best_latlng(
             idx, full_api_address, api_key, gsi_check, gsi_distance, priority, mode, reverse_geocode_check, note_list, log_callback,
-            jageocoder_check, area
+            jageocoder_check, area, google_reverse_check
         )
         cache["latlng"] = (lat, lng)
         cache["source"] = source

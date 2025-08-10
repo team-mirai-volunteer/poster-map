@@ -84,5 +84,15 @@ def test_https_availability():
     print("HTTPSエンドポイントが利用可能な場合は、constants.pyのAPI_ENDPOINTSを更新してください。")
     print("現状はHTTPエンドポイントを使用しています。")
 
+def test_https_endpoints():
+    """統合テスト用のエントリーポイント"""
+    try:
+        test_https_availability()
+        return True
+    except Exception as e:
+        print(f"Error: {e}")
+        return False
+
 if __name__ == "__main__":
-    test_https_availability()
+    result = test_https_endpoints()
+    sys.exit(0 if result else 1)
