@@ -16,8 +16,9 @@ from constants import (
 
 try:
     from dotenv import load_dotenv
-    load_dotenv('/app/.env')
-    load_dotenv()
+    # プロジェクトルートの.envファイルを読み込み
+    load_dotenv(os.path.join(os.path.dirname(__file__), '..', '.env'))
+    load_dotenv()  # カレントディレクトリの.envも読み込み
 except ImportError:
     pass
 
@@ -124,13 +125,26 @@ def get_gsi_latlng(address):
 def get_jageocoder_latlng(address, area=None):
     """Jageocoder APIから座標を取得"""
     url = API_ENDPOINTS["jageocoder"]
+    
+    # エンドポイントが無効化されている場合はスキップ
+    if not url:
+        return None, None
+    
     params = {"addr": address}
     if area:
         params["area"] = area
+    
     try:
         response = requests.get(url, params=params, timeout=API_TIMEOUT)
         response.raise_for_status()
-        result = response.json()
+        
+        # JSONパースエラーの明示的な処理
+        try:
+            result = response.json()
+        except ValueError as e:
+            # JSONパースエラーをログに記録（将来的にlogger追加時）
+            return None, None
+        
         if result and isinstance(result, list) and len(result) > 0:
             first_result = result[0]
             if isinstance(first_result, dict) and "node" in first_result:
@@ -143,6 +157,12 @@ def get_jageocoder_latlng(address, area=None):
                     return lat, lon
         return None, None
     except requests.exceptions.Timeout:
+        return None, None
+    except requests.exceptions.HTTPError as e:
+        # HTTP エラーの詳細をログに記録（将来的にlogger追加時）
+        return None, None
+    except requests.exceptions.ConnectionError:
+        # 接続エラー
         return None, None
     except Exception:
         return None, None
@@ -174,15 +194,26 @@ def reverse_geocode_jageocoder(lat, lng, level=DEFAULT_REVERSE_GEOCODE_LEVEL):
         str or None: 住所文字列、取得失敗時はNone
     """
     url = API_ENDPOINTS["jageocoder_reverse"]
+    
+    # エンドポイントが無効化されている場合はスキップ
+    if not url:
+        return None
+    
     params = {
         "lat": lat,
         "lon": lng,
         "level": level
     }
+    
     try:
         response = requests.get(url, params=params, timeout=API_TIMEOUT)
         response.raise_for_status()
-        result = response.json()
+        
+        # JSONパースエラーの明示的な処理
+        try:
+            result = response.json()
+        except ValueError:
+            return None
         
         if result and isinstance(result, list) and len(result) > 0:
             first_result = result[0]
@@ -193,6 +224,10 @@ def reverse_geocode_jageocoder(lat, lng, level=DEFAULT_REVERSE_GEOCODE_LEVEL):
                     return "".join(address_parts)
         return None
     except requests.exceptions.Timeout:
+        return None
+    except requests.exceptions.HTTPError:
+        return None
+    except requests.exceptions.ConnectionError:
         return None
     except Exception:
         return None

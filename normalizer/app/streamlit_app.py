@@ -8,10 +8,21 @@ from geo_processor import (
     extract_address_like_text_from_last_row,
     get_prefecture_from_partial_address
 )
+from constants import API_ENDPOINTS
 
 st.set_page_config(page_title="CSV正規化ツール", layout="wide")
 
 st.sidebar.title("設定")
+
+# エンドポイント設定状態の表示
+with st.sidebar.expander("📍 APIエンドポイント設定状態"):
+    st.write("**Google Maps API:**", "✅ 利用可能" if os.environ.get("GOOGLE_MAPS_API_KEY") else "❌ APIキー未設定")
+    st.write("**国土地理院API:**", "✅ 利用可能")
+    jageocoder_status = "✅ 利用可能" if API_ENDPOINTS.get("jageocoder") else "❌ エンドポイント未設定"
+    st.write("**Jageocoder API:**", jageocoder_status)
+    if not API_ENDPOINTS.get("jageocoder"):
+        st.warning("⚠️ JAGEOCODER_ENDPOINT環境変数が設定されていません")
+
 sleep_msec = st.sidebar.number_input("APIリクエスト間隔（ミリ秒）", min_value=0, max_value=5000, value=200, step=10)
 normalize_digits = st.sidebar.checkbox("漢数字をアラビア数字に変換", value=False)
 st.sidebar.markdown("---")
@@ -183,6 +194,12 @@ if mode == "distance" and not gsi_check and not jageocoder_check:
 elif mode == "reverse_geocode" and not google_reverse_check and not jageocoder_check:
     button_disabled = True
     validation_message = "⚠️ 逆引きチェックモードでは、「Google APIを使う」または「Jageocoder APIを使う」のいずれかにチェックを入れてください。"
+elif mode == "jageocoder_only" and not API_ENDPOINTS.get("jageocoder"):
+    button_disabled = True
+    validation_message = "⚠️ JageocoderのみモードにはJAGEOCODER_ENDPOINT環境変数の設定が必要です。"
+elif jageocoder_check and not API_ENDPOINTS.get("jageocoder"):
+    button_disabled = True
+    validation_message = "⚠️ Jageocoder APIを使用するにはJAGEOCODER_ENDPOINT環境変数の設定が必要です。"
 
 if validation_message:
     st.warning(validation_message)

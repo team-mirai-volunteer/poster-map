@@ -2,18 +2,39 @@
 
 import sys
 import os
+
+# テスト環境設定を最初に実行
+from test_config import setup_test_environment
+setup_test_environment()
+
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'app')))
 
 from geo_processor import (
     get_jageocoder_latlng, get_gmap_latlng, get_gsi_latlng, haversine,
     reverse_geocode_jageocoder, reverse_geocode_google
 )
+from constants import API_ENDPOINTS
+
+def check_jageocoder_endpoints():
+    """Jageocoderエンドポイントの有効性をチェック"""
+    if not API_ENDPOINTS["jageocoder"] or not API_ENDPOINTS["jageocoder_reverse"]:
+        print("[SKIP] Jageocoderエンドポイントが無効化されています。")
+        print("テスト用に環境変数JAGEOCODER_ENDPOINTを設定してください。")
+        return False
+    return True
 
 def test_jageocoder_api():
     """
     Test Jageocoder API functionality
     """
     print("=== Test: Jageocoder API ===")
+    
+    # エンドポイント有効性チェック
+    if not check_jageocoder_endpoints():
+        return False
+    
+    print(f"使用エンドポイント: {API_ENDPOINTS['jageocoder']}")
+    print(f"逆引きエンドポイント: {API_ENDPOINTS['jageocoder_reverse']}")
     
     test_addresses = [
         {
@@ -55,6 +76,10 @@ def test_api_comparison():
     3つのAPIの結果を比較するテスト
     """
     print("\n=== Test: API結果の比較 ===")
+    
+    # エンドポイント有効性チェック
+    if not check_jageocoder_endpoints():
+        return False
     
     # テスト用の住所
     address = "東京都中央区京橋1丁目19番13号"
@@ -103,6 +128,10 @@ def test_reverse_geocoding():
     """
     print("\n=== Test: 逆ジオコーディング ===")
     
+    # エンドポイント有効性チェック
+    if not check_jageocoder_endpoints():
+        return False
+    
     # テスト用の座標（東京駅周辺）
     test_coords = [
         {"lat": 35.681236, "lon": 139.767125, "description": "東京駅周辺"},
@@ -138,6 +167,9 @@ def test_comprehensive_geocoding():
     """
     包括的なジオコーディングテスト（順方向 → 逆方向の検証）
     """
+    # エンドポイント有効性チェック
+    if not check_jageocoder_endpoints():
+        return False
     print("\n=== Test: 包括的ジオコーディング ===")
     
     test_address = "東京都中央区京橋1丁目19番13号"

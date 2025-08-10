@@ -68,10 +68,16 @@ def test_mode_consistency():
     
     print("=== モード別整合性テスト ===\n")
     
-    # APIキーの確認
+    # APIキーとエンドポイントの確認
     api_key = os.environ.get("GOOGLE_MAPS_API_KEY", "")
     if not api_key:
         print("[注意] Google Maps APIキーが設定されていません。Googleモードはスキップされます。\n")
+    
+    # Jageocoderエンドポイントの確認
+    from constants import API_ENDPOINTS
+    jageocoder_available = bool(API_ENDPOINTS.get("jageocoder"))
+    if not jageocoder_available:
+        print("[注意] Jageocoderエンドポイントが設定されていません。Jageocoderモードはスキップされます。\n")
     
     all_passed = True
     
@@ -81,6 +87,11 @@ def test_mode_consistency():
         # Google APIキーが必要なモードはスキップ
         if test_case['params']['mode'] in ['google_only', 'distance', 'reverse_geocode'] and not api_key:
             print("  [SKIP] Google APIキーが必要です\n")
+            continue
+        
+        # Jageocoderエンドポイントが必要なモードはスキップ
+        if test_case['params']['mode'] == 'jageocoder_only' and not jageocoder_available:
+            print("  [SKIP] Jageocoderエンドポイントが必要です\n")
             continue
         
         try:

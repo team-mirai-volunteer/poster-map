@@ -9,9 +9,14 @@ import os
 import requests
 import json
 
+# テスト環境設定を最初に実行
+from test_config import setup_test_environment
+setup_test_environment()
+
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'app')))
 
 from geo_processor import get_gsi_latlng, get_jageocoder_latlng, haversine
+from constants import API_ENDPOINTS
 
 def test_api_responses_direct():
     """
@@ -54,7 +59,7 @@ def test_api_responses_direct():
         
         # Jageocoder API
         print("【Jageocoder API】")
-        jageocoder_url = "http://jageocoder.tsuruharu.com/geocode"
+        jageocoder_url = API_ENDPOINTS["jageocoder"]
         jageocoder_params = {"addr": address}
         try:
             jageocoder_res = requests.get(jageocoder_url, params=jageocoder_params, timeout=10)

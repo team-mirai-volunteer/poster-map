@@ -53,7 +53,10 @@ pip install -r requirements.txt
 
 ```bash
 cp .env.example .env
-# .envファイルを編集してGoogle Maps APIキーを設定（Google APIを使用する場合のみ）
+# .envファイルを編集して以下を設定：
+# - GOOGLE_MAPS_API_KEY: Google APIを使用する場合（必須）
+# - JAGEOCODER_ENDPOINT: Jageocoder APIを使用する場合（オプション）
+#   例: JAGEOCODER_ENDPOINT=https://your-server.example.com
 ```
 
 ### 3. アプリケーションの起動
@@ -90,7 +93,10 @@ make build
 # ローカルでの実行（Google APIを使用する場合）
 GOOGLE_MAPS_API_KEY="your_api_key_here" make run-local
 
-# テスト用コンテナ起動（APIキー不要）
+# Jageocoder APIも使用する場合
+GOOGLE_MAPS_API_KEY="your_api_key_here" JAGEOCODER_ENDPOINT="https://your-server.example.com" make run-local
+
+# テスト用コンテナ起動（APIキー不要、国土地理院APIのみ使用）
 make test-local
 ```
 
@@ -249,8 +255,14 @@ APIの利用制限を避けるため、APIコール間の待機時間を設定�
 ## 🔒 セキュリティ
 
 - **APIキーの管理**: 本番環境では環境変数またはSecret Managerを使用
+- **外部APIエンドポイント設定**: セキュリティ強化のため、Jageocoderエンドポイントはデフォルトで無効化
+  - 使用する場合は環境変数 `JAGEOCODER_ENDPOINT` でベースURLを設定（システムが自動的に`/geocode`と`/rgeocode`パスを付加）
+  - 本番・テスト環境で同一の環境変数を使用（設定の統一化）
+  - カスタムエンドポイントも環境変数で設定可能
+- **設定値のカスタマイズ**: タイムアウト値や閾値も環境変数で制御可能
 - **アクセス制御**: Cloud Runでの認証設定が可能
 - **ログ管理**: 機密情報がログに出力されないよう配慮
+- **エラーハンドリング強化**: API通信エラーの詳細な分類と適切な処理
 
 ## 📌 注意事項
 
@@ -303,7 +315,8 @@ APIの利用制限を避けるため、APIコール間の待機時間を設定�
 6. **ボタンが無効化される**:
    - 距離チェックモードで「国土地理院APIを使う」「Jageocoder APIを使う」が両方とも未選択
    - 逆引きチェックモードで「Google APIを使う」「Jageocoder APIを使う」が両方とも未選択
-   - 警告メッセージに従って、少なくとも一方のAPIを選択してください
+   - JageocoderのみモードまたはJageocoder APIチェック時に`JAGEOCODER_ENDPOINT`環境変数が未設定
+   - 警告メッセージに従って、適切な設定を行ってください
 
 7. **列マッピングが正しく認識されない**:
    - CSVの列名を「number」「address」「name」に変更すると自動認識されます
@@ -321,6 +334,26 @@ gcloud logs read --service=csv-normalizer --limit=50
 このプロジェクトは[GPL-3.0 license](https://github.com/team-mirai-volunteer/poster-map/blob/main/LICENSE)の下で公開されています。
 
 ## 📝 更新履歴
+
+### v2.2.0
+- **環境変数統一化**: 
+  - `JAGEOCODER_ENDPOINT`を1つのベースURLで設定するように統一
+  - システムが自動的に`/geocode`と`/rgeocode`パスを付加する仕組みに変更
+  - `TEST_JAGEOCODER_BASE_URL`を`JAGEOCODER_ENDPOINT`に統合し、本番・テスト環境で同一設定を使用
+- **セキュリティ強化**: 
+  - すべてのハードコードされたJageocoderエンドポイントを除去
+  - デフォルトでJageocoderエンドポイントを無効化、明示的な設定が必要
+  - .env.exampleファイルから具体的なサーバーURLを削除
+- **UI改善**: 
+  - APIエンドポイント設定状態の表示機能を追加
+  - Jageocoder API使用時の環境変数設定チェックとエラー表示
+  - 設定不備時の詳細な警告メッセージ
+- **テスト機能改善**: 
+  - test_all.pyでJageocoderエンドポイント未設定時の適切なスキップ処理
+  - 全テストが環境変数ベースで動作するように統一
+- **.envファイル読み込み修正**: 
+  - プロジェクトルートの.envファイルが正しく読み込まれるように修正
+  - ローカル開発環境での環境変数読み込み問題を解決
 
 ### v2.1.0
 - **逆引きチェックモード大幅改善**: 

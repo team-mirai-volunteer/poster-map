@@ -6,6 +6,10 @@
 import sys
 import os
 
+# テスト環境設定を最初に実行
+from test_config import setup_test_environment, print_test_environment
+setup_test_environment()
+
 # appディレクトリをパスに追加
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'app')))
 
@@ -13,6 +17,7 @@ def run_all_tests():
     """すべてのテストを実行"""
     print("=" * 60)
     print("CSV正規化ツール 統合テスト")
+    print("すべての利用可能なテストファイルを実行します")
     print("=" * 60)
     
     all_passed = True
@@ -48,10 +53,16 @@ def run_all_tests():
     print("\n[3/6] Jageocoder APIテスト")
     print("-" * 40)
     try:
-        from test_jageocoder import main as test_jageocoder_main
-        test3_result = test_jageocoder_main()
-        test3_passed = (test3_result == 0)
-        test_results["Jageocoder APIテスト"] = test3_passed
+        from constants import API_ENDPOINTS
+        if not API_ENDPOINTS.get("jageocoder") or not API_ENDPOINTS.get("jageocoder_reverse"):
+            print("[SKIP] Jageocoderエンドポイントが設定されていないため、テストをスキップします。")
+            test3_passed = True  # スキップは成功として扱う
+            test_results["Jageocoder APIテスト"] = "SKIP"
+        else:
+            from test_jageocoder import main as test_jageocoder_main
+            test3_result = test_jageocoder_main()
+            test3_passed = (test3_result == 0)
+            test_results["Jageocoder APIテスト"] = test3_passed
     except Exception as e:
         print(f"エラー: {e}")
         test3_passed = False
@@ -62,9 +73,15 @@ def run_all_tests():
     print("\n[4/6] API比較テスト")
     print("-" * 40)
     try:
-        from test_api_comparison import test_api_comparison
-        test4_passed = test_api_comparison()
-        test_results["API比較テスト"] = test4_passed
+        from constants import API_ENDPOINTS
+        if not API_ENDPOINTS.get("jageocoder"):
+            print("[SKIP] Jageocoderエンドポイントが設定されていないため、API比較テストをスキップします。")
+            test4_passed = True  # スキップは成功として扱う
+            test_results["API比較テスト"] = "SKIP"
+        else:
+            from test_api_comparison import test_api_comparison
+            test4_passed = test_api_comparison()
+            test_results["API比較テスト"] = test4_passed
     except Exception as e:
         print(f"エラー: {e}")
         test4_passed = False
@@ -75,9 +92,15 @@ def run_all_tests():
     print("\n[5/6] HTTPSエンドポイントテスト")
     print("-" * 40)
     try:
-        from test_https_endpoint import test_https_endpoints
-        test5_passed = test_https_endpoints()
-        test_results["HTTPSエンドポイントテスト"] = test5_passed
+        from constants import API_ENDPOINTS
+        if not API_ENDPOINTS.get("jageocoder"):
+            print("[SKIP] Jageocoderエンドポイントが設定されていないため、HTTPSテストをスキップします。")
+            test5_passed = True  # スキップは成功として扱う
+            test_results["HTTPSエンドポイントテスト"] = "SKIP"
+        else:
+            from test_https_endpoint import test_https_endpoints
+            test5_passed = test_https_endpoints()
+            test_results["HTTPSエンドポイントテスト"] = test5_passed
     except Exception as e:
         print(f"エラー: {e}")
         test5_passed = False
@@ -101,8 +124,13 @@ def run_all_tests():
     print("\n" + "=" * 60)
     print("テスト結果サマリー")
     print("=" * 60)
-    for test_name, passed in test_results.items():
-        print(f"{test_name}: {'[PASS]' if passed else '[FAIL]'}")
+    for test_name, result in test_results.items():
+        if result == "SKIP":
+            print(f"{test_name}: [SKIP]")
+        elif result == True:
+            print(f"{test_name}: [PASS]")
+        else:
+            print(f"{test_name}: [FAIL]")
     print("-" * 60)
     
     if all_passed:
