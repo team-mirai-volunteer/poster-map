@@ -14,7 +14,6 @@ from constants import (
     DEFAULT_REVERSE_GEOCODE_LEVEL
 )
 
-# .envから環境変数をロード（/app/.env優先）
 try:
     from dotenv import load_dotenv
     load_dotenv('/app/.env')
@@ -68,7 +67,7 @@ def is_valid_japan_coordinates(lat, lon):
 
 def haversine(lat1, lon1, lat2, lon2):
     """2点間の距離をハヴァーサイン公式で計算（メートル単位）"""
-    R = 6371000  # 地球の半径（メートル）
+    R = 6371000
     phi1, phi2 = radians(lat1), radians(lat2)
     dphi = radians(lat2 - lat1)
     dlambda = radians(lon2 - lon1)
@@ -132,15 +131,13 @@ def get_jageocoder_latlng(address, area=None):
         response = requests.get(url, params=params, timeout=API_TIMEOUT)
         response.raise_for_status()
         result = response.json()
-        # レスポンスはリスト形式で返ってくる
         if result and isinstance(result, list) and len(result) > 0:
             first_result = result[0]
             if isinstance(first_result, dict) and "node" in first_result:
                 node = first_result["node"]
-                # x, yフィールドを使用（lon, lat）
                 if "x" in node and "y" in node:
-                    lon = node["x"]  # x = longitude
-                    lat = node["y"]  # y = latitude
+                    lon = node["x"]
+                    lat = node["y"]
                     if not is_valid_japan_coordinates(lat, lon):
                         return None, None
                     return lat, lon
@@ -187,13 +184,11 @@ def reverse_geocode_jageocoder(lat, lng, level=DEFAULT_REVERSE_GEOCODE_LEVEL):
         response.raise_for_status()
         result = response.json()
         
-        # レスポンスはリスト形式で返ってくる
         if result and isinstance(result, list) and len(result) > 0:
             first_result = result[0]
             if isinstance(first_result, dict) and "candidate" in first_result:
                 candidate = first_result["candidate"]
                 if "fullname" in candidate and isinstance(candidate["fullname"], list):
-                    # fullnameの配列を連結して住所文字列を作成
                     address_parts = candidate["fullname"]
                     return "".join(address_parts)
         return None
@@ -215,7 +210,6 @@ def normalize_japanese_address(addr):
     addr = normalize_address_digits(addr)
     addr = re.sub(r'(先|付近|階|Ｆ|号室|室|[A-Za-zａ-ｚＡ-Ｚ]{1,10})$', '', addr)
 
-    # 丁目+番パターン
     m = re.search(r'^(.+?)(\d+)丁目(\d+)番', addr)
     if m:
         town = m.group(1)
@@ -223,7 +217,6 @@ def normalize_japanese_address(addr):
         ban = m.group(3)
         return f'{town}{chome}丁目{ban}番'
 
-    # 丁目+ハイフン+番地
     m = re.search(r'^(.+?)(\d+)丁目(\d+)-', addr)
     if m:
         town = m.group(1)
@@ -231,21 +224,18 @@ def normalize_japanese_address(addr):
         ban = m.group(3)
         return f'{town}{chome}丁目{ban}番'
 
-    # 町名+ハイフン+数字（丁目なし）
     m = re.search(r'^(.+?)(\d+)-', addr)
     if m:
         town = m.group(1)
         ban = m.group(2)
         return f'{town}{ban}番'
 
-    # 丁目だけ
     m = re.search(r'^(.+?)(\d+)丁目', addr)
     if m:
         town = m.group(1)
         chome = m.group(2)
         return f'{town}{chome}丁目'
 
-    # 番だけ
     m = re.search(r'^(.+?)(\d+)番', addr)
     if m:
         town = m.group(1)
@@ -301,16 +291,12 @@ def addresses_roughly_match(addr1, addr2, threshold=None):
 def _get_coordinates_by_mode(address, api_key, mode, gsi_check, jageocoder_check, area, priority, google_reverse_check=True):
     """モードに応じてAPIから座標を取得"""
     if priority == "gsi" and mode in ["gsi_only"]:
-        # 国土地理院のみモード
         lat2, lon2 = get_gsi_latlng(address)
         return None, None, lat2, lon2, None, None
     elif priority == "jageocoder" and mode in ["jageocoder_only"]:
-        # Jageocoderのみモード
         lat3, lon3 = get_jageocoder_latlng(address, area)
         return None, None, None, None, lat3, lon3
     else:
-        # 通常モード（複数API使用）
-        # reverse_geocodeモードではgoogle_reverse_checkの設定を考慮
         use_google = api_key and (mode != "reverse_geocode" or google_reverse_check)
         lat1, lon1 = get_gmap_latlng(address, api_key) if use_google else (None, None)
         lat2, lon2 = get_gsi_latlng(address) if gsi_check else (None, None)
@@ -320,13 +306,11 @@ def _get_coordinates_by_mode(address, api_key, mode, gsi_check, jageocoder_check
 def _handle_reverse_geocode_mode(index, address, lat1, lon1, lat2, lon2, lat3, lon3, api_key, mode, reverse_geocode_check, note_out, logger, priority, google_reverse_check=True, jageocoder_reverse_check=False):
     """逆ジオコーディングモードの処理"""
     if mode == "reverse_geocode" and reverse_geocode_check:
-        # 逆引き結果を収集
         google_match = False
         jageocoder_match = False
         google_checked = False
         jageocoder_checked = False
         
-        # Google座標の逆引きチェック（チェックボックスがONの場合）
         if lat1 is not None and google_reverse_check:
             google_checked = True
             rev_addr_google = reverse_geocode_google(lat1, lon1, api_key)
@@ -336,7 +320,6 @@ def _handle_reverse_geocode_mode(index, address, lat1, lon1, lat2, lon2, lat3, l
                     logger(f"{index}行目: Google座標の逆引きが一致しました。")
                 return lat1, lon1, "google"
         
-        # Jageocoder座標の逆引きチェック（チェックボックスがONの場合）
         if lat3 is not None and jageocoder_reverse_check:
             jageocoder_checked = True
             rev_addr_jageocoder = reverse_geocode_jageocoder(lat3, lon3)
@@ -346,38 +329,33 @@ def _handle_reverse_geocode_mode(index, address, lat1, lon1, lat2, lon2, lat3, l
                     logger(f"{index}行目: Jageocoder座標の逆引きが一致しました。")
                 return lat3, lon3, "jageocoder"
         
-        # 9. すべての逆引きが不一致の場合、priorityで指定されたAPIの座標を採用
         if note_out is not None:
             note_out.append("緯度経度は怪しい")
         
-        # 採用するAPIを決定
         selected_lat, selected_lon, selected_api = None, None, "none"
         
-        # priorityに従って座標を採用
-        # 重要: 優先APIの座標がない場合でも、他APIの座標を「優先APIの座標として扱う」
         if priority == "google":
             if lat1 is not None:
                 selected_lat, selected_lon, selected_api = lat1, lon1, "google"
             elif lat2 is not None:
-                selected_lat, selected_lon, selected_api = lat2, lon2, "google"  # GSI座標をGoogleとして扱う
+                selected_lat, selected_lon, selected_api = lat2, lon2, "google"
             elif lat3 is not None:
-                selected_lat, selected_lon, selected_api = lat3, lon3, "google"  # Jageocoder座標をGoogleとして扱う
+                selected_lat, selected_lon, selected_api = lat3, lon3, "google"
         elif priority == "gsi":
             if lat2 is not None:
                 selected_lat, selected_lon, selected_api = lat2, lon2, "gsi"
             elif lat1 is not None:
-                selected_lat, selected_lon, selected_api = lat1, lon1, "gsi"  # Google座標をGSIとして扱う
+                selected_lat, selected_lon, selected_api = lat1, lon1, "gsi"
             elif lat3 is not None:
-                selected_lat, selected_lon, selected_api = lat3, lon3, "gsi"  # Jageocoder座標をGSIとして扱う
+                selected_lat, selected_lon, selected_api = lat3, lon3, "gsi"
         elif priority == "jageocoder":
             if lat3 is not None:
                 selected_lat, selected_lon, selected_api = lat3, lon3, "jageocoder"
             elif lat2 is not None:
-                selected_lat, selected_lon, selected_api = lat2, lon2, "jageocoder"  # GSI座標をJageocoderとして扡う
+                selected_lat, selected_lon, selected_api = lat2, lon2, "jageocoder"
             elif lat1 is not None:
-                selected_lat, selected_lon, selected_api = lat1, lon1, "jageocoder"  # Google座標をJageocoderとして扡う
+                selected_lat, selected_lon, selected_api = lat1, lon1, "jageocoder"
         else:
-            # フォールバック（通常は発生しない）
             if lat2 is not None:
                 selected_lat, selected_lon, selected_api = lat2, lon2, "gsi"
             elif lat3 is not None:
@@ -385,11 +363,9 @@ def _handle_reverse_geocode_mode(index, address, lat1, lon1, lat2, lon2, lat3, l
             elif lat1 is not None:
                 selected_lat, selected_lon, selected_api = lat1, lon1, "google"
         
-        # 不一致時のログを1行にまとめる
         if logger and selected_api != "none" and ((google_checked and not google_match) or (jageocoder_checked and not jageocoder_match)):
             api_name = API_DISPLAY_NAMES.get(selected_api, selected_api)
             
-            # どのAPIの逆引きが不一致かを判定
             if google_checked and jageocoder_checked and not google_match and not jageocoder_match:
                 mismatch_apis = "Google座標もJageocoder座標も"
             elif google_checked and not google_match:
@@ -403,14 +379,13 @@ def _handle_reverse_geocode_mode(index, address, lat1, lon1, lat2, lon2, lat3, l
         
         return selected_lat, selected_lon, selected_api
     
-    return None  # このモードではない場合
+    return None
 
 def _handle_distance_check_mode(index, address, lat1, lon1, lat2, lon2, lat3, lon3, mode, distance_threshold, priority, note_out, logger):
     """距離チェックモードの処理"""
     if mode != "distance":
         return None
     
-    # 使用可能な座標を集める
     coords = []
     if lat1 is not None:
         coords.append(("google", lat1, lon1))
@@ -419,11 +394,9 @@ def _handle_distance_check_mode(index, address, lat1, lon1, lat2, lon2, lat3, lo
     if lat3 is not None:
         coords.append(("jageocoder", lat3, lon3))
     
-    # 1つしか取得できなかった場合
     if len(coords) == 1:
         return coords[0][1], coords[0][2], coords[0][0]
     
-    # 複数取得できた場合、距離を比較
     if len(coords) >= 2:
         distances = {}
         for i in range(len(coords)):
@@ -433,10 +406,8 @@ def _handle_distance_check_mode(index, address, lat1, lon1, lat2, lon2, lat3, lo
                 dist = haversine(lat_i, lon_i, lat_j, lon_j)
                 distances[f"{name1}-{name2}"] = dist
         
-        # 最大距離が閾値を超える場合
         max_dist = max(distances.values())
         if max_dist >= distance_threshold:
-            # 優先順位に基づいて選択するAPIを決定
             selected_api = None
             if priority == "gsi" and lat2 is not None:
                 selected_api = "gsi"
@@ -666,9 +637,9 @@ def extract_address_like_text_from_last_row(df: pd.DataFrame) -> str:
         for col in df.columns:
             cell = str(last_row[col])
             if address_pattern.search(cell):
-                return cell  # 最初に見つかった候補を返す
+                return cell
 
-        return ""  # 見つからなかった場合
+        return ""
 
     except Exception:
-        return ""  # エラー時にも空文字列を返す
+        return ""

@@ -11,7 +11,6 @@ from geo_processor import (
 
 st.set_page_config(page_title="CSV正規化ツール", layout="wide")
 
-# --- サイドバー: 設定項目 ---
 st.sidebar.title("設定")
 sleep_msec = st.sidebar.number_input("APIリクエスト間隔（ミリ秒）", min_value=0, max_value=5000, value=200, step=10)
 normalize_digits = st.sidebar.checkbox("漢数字をアラビア数字に変換", value=False)
@@ -45,16 +44,15 @@ if mode == "distance":
         priority_format["jageocoder"] = "Jageocoder"
     priority = st.sidebar.selectbox("閾値超時に優先するAPI", options=priority_options, format_func=lambda x: priority_format[x])
     reverse_geocode_check = False
-    google_reverse_check = True  # 逆引きチェックモード以外ではデフォルトTrue
+    google_reverse_check = True
 elif mode == "reverse_geocode":
     st.sidebar.markdown("**逆引きチェック設定**")
     st.sidebar.info("取得した座標を逆引きして住所の一致を確認します。")
     reverse_geocode_check = True
     google_reverse_check = st.sidebar.checkbox("Google APIを使う", value=True, help="Google Mapsの逆ジオコーディングで住所を検証します")
     jageocoder_check = st.sidebar.checkbox("Jageocoder APIを使う", value=False, help="Jageocoderの逆ジオコーディングで住所を検証します")
-    gsi_check = True  # 座標取得には国土地理院も使用
+    gsi_check = True
     gsi_distance = 200
-    # 逆引きが全て不一致の場合に使用するAPI
     priority_options = ["google", "gsi", "jageocoder"]
     priority_format = {"google": "Google", "gsi": "国土地理院", "jageocoder": "Jageocoder"}
     priority = st.sidebar.selectbox("逆引き不一致時に採用するAPI", options=priority_options, format_func=lambda x: priority_format[x], help="すべての逆引きが不一致の場合に使用するAPIを選択")
@@ -76,7 +74,7 @@ elif mode == "gsi_only":
     priority = "gsi"
     reverse_geocode_check = False
     google_reverse_check = False
-else:  # jageocoder_only
+else:
     st.sidebar.markdown("**Jageocoderのみ使用設定**")
     st.sidebar.info("Jageocoder APIのみで座標を取得します。APIキーは不要です。")
     gsi_check = False
@@ -97,7 +95,6 @@ if csv_file is not None:
     df = pd.read_csv(csv_file)
     st.success(f"CSVファイルを読み込みました（{len(df)}行のデータ）")
     st.subheader("データプレビュー")
-    # プレビュー時のみインデックス1始まりで表示
     df_view = df.copy()
     df_view.index = df_view.index + 1
     st.dataframe(df_view, height=400)
@@ -139,23 +136,18 @@ if csv_file is not None and df is not None:
     col_names = df.columns.tolist()
     pref_val, city_val = guess_pref_city_vals(col_names, df, filename)
     
-    # 列名の自動認識（完全一致を優先）
-    # 大文字小文字を区別しない列名リスト
     col_names_lower = [c.lower() for c in col_names]
     
-    # number列: 完全一致を優先、次に部分一致
     if "number" in col_names_lower:
         number_col_guess = col_names[col_names_lower.index("number")]
     else:
         number_col_guess = next((c for c in col_names if "番号" in c or "number" in c.lower() or "no" in c.lower() or "num" in c.lower()), col_names[0] if col_names else "")
     
-    # address列: 完全一致を優先、次に部分一致
     if "address" in col_names_lower:
         addr_col_guess = col_names[col_names_lower.index("address")]
     else:
         addr_col_guess = next((c for c in col_names if "住所" in c or "address" in c.lower() or "住" in c or "所在地" in c), col_names[0] if col_names else "")
     
-    # name列: 完全一致を優先、次に部分一致
     if "name" in col_names_lower:
         name_col_guess = col_names[col_names_lower.index("name")]
     else:
@@ -182,7 +174,6 @@ output_columns = st.multiselect(
 
 st.header("3. 処理を実行")
 
-# APIが選択されていない場合のバリデーション
 button_disabled = False
 validation_message = ""
 
@@ -222,7 +213,6 @@ if st.button("CSV正規化を実行", disabled=button_disabled):
     
     if df is not None:
         if "lat" in output_columns or "long" in output_columns:
-            # Google APIを使用するモードの場合のみAPIキーを要求
             if mode not in ["gsi_only", "jageocoder_only"] and not os.environ.get("GOOGLE_MAPS_API_KEY"):
                 st.error("Google Maps APIキーが設定されていません。環境変数 GOOGLE_MAPS_API_KEY を設定してください。")
                 st.stop()
@@ -255,7 +245,6 @@ if st.button("CSV正規化を実行", disabled=button_disabled):
             info_placeholder = st.empty()
             info_placeholder.info("処理中…しばらくお待ちください")
             
-            # modeパラメータをそのまま渡す
             actual_mode = mode
             
             results = process_csv_data(
@@ -285,12 +274,18 @@ if st.button("CSV正規化を実行", disabled=button_disabled):
             progress_bar.progress(1.0)
             status_text.text("完了")
             info_placeholder.empty()
-            msg = "処理完了！出力データをダウンロードできます"
+            
+            # 「緯度経度は怪しい」のカウント
+            total_rows = len(out_df)
+            suspicious_count = 0
+            if "note" in out_df.columns:
+                suspicious_count = sum(1 for note in out_df["note"] if "緯度経度は怪しい" in str(note))
+            
+            msg = f"処理完了！{total_rows}件中{suspicious_count}件({suspicious_count/total_rows*100:.1f}%)が緯度経度は怪しいとなりました。出力データをダウンロードできます"
             if st.session_state.warning_count > 0:
                 msg += f"。変換中に {st.session_state.warning_count} 件の警告が発生しました。"
             st.success(msg)
             
-            # ---出力プレビューもインデックス1始まりで---
             out_df_view = out_df.copy()
             out_df_view.index = out_df_view.index + 1
             st.dataframe(out_df_view, height=400)
