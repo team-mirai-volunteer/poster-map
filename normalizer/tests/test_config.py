@@ -6,24 +6,28 @@
 
 import os
 import sys
+from dotenv import load_dotenv
 
 # 隣接の app ディレクトリをパスに追加（冪等）
 app_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'app'))
 if app_dir not in sys.path:
     sys.path.insert(0, app_dir)
+
 def setup_test_environment():
     """
     テスト環境を設定する
-    Jageocoderエンドポイントは環境変数が明示的に設定された場合のみ有効化
+    .envファイルを読み込み、テスト用の環境変数を設定
     """
-    # Jageocoderエンドポイント設定（環境変数が設定されている場合のみ有効化）
+    # まず.envファイルを読み込み
+    env_path = os.path.join(os.path.dirname(__file__), '..', '.env')
+    load_dotenv(env_path)
+    
+    # Jageocoderエンドポイント設定
     jageocoder_endpoint = os.environ.get("JAGEOCODER_ENDPOINT")
     
     if jageocoder_endpoint:
         print(f"[INFO] Jageocoderエンドポイントを有効化: {jageocoder_endpoint}")
     else:
-        # 環境変数が未設定の場合は無効化
-        os.environ.setdefault("JAGEOCODER_ENDPOINT", "")
         print("[INFO] JAGEOCODER_ENDPOINTが未設定のため、Jageocoderエンドポイントを無効化")
     
     # その他のテスト用設定

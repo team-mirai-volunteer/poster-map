@@ -65,6 +65,13 @@ def test_jageocoder_api():
         
         if lat is not None and lon is not None:
             print(f"[OK] Jageocoder座標: {lat:.6f}, {lon:.6f}")
+            
+            # 座標の妥当性検証
+            assert isinstance(lat, (int, float)), f"緯度が数値型ではありません: {type(lat)}"
+            assert isinstance(lon, (int, float)), f"経度が数値型ではありません: {type(lon)}"
+            assert 20 <= lat <= 46, f"緯度 {lat} が日本の範囲外です"
+            assert 122 <= lon <= 154, f"経度 {lon} が日本の範囲外です"
+            
         else:
             print(f"[NG] Jageocoderで座標を取得できませんでした")
             all_passed = False
@@ -110,7 +117,7 @@ def test_api_comparison():
         results.append(("Google", lat_google, lon_google))
         print(f"Google: {lat_google:.6f}, {lon_google:.6f}")
     
-    # 座標間の距離を計算
+    # 座標間の距離を計算と検証
     if len(results) >= 2:
         print("\n座標間の距離:")
         for i in range(len(results)):
@@ -119,6 +126,13 @@ def test_api_comparison():
                 name2, lat2, lon2 = results[j]
                 distance = haversine(lat1, lon1, lat2, lon2)
                 print(f"  {name1} - {name2}: {distance:.1f}m")
+                
+                # 距離の妥当性検証（異常に大きくないことを確認）
+                assert distance >= 0, f"距離が負数です: {distance}"
+                assert distance <= 100000, f"API間の距離が異常に大きい: {distance:.1f}m"
+    
+    # 最低限1つのAPIで座標が取得できることを検証
+    assert len(results) > 0, "どのAPIでも座標を取得できませんでした"
     
     return len(results) > 0
 
@@ -226,6 +240,13 @@ def test_comprehensive_geocoding():
 def main():
     print("Jageocoder API統合テスト")
     print("=" * 50)
+    
+    # エンドポイント有効性チェック
+    if not check_jageocoder_endpoints():
+        print("\n" + "=" * 50)
+        print("[SKIP] Jageocoderエンドポイントが設定されていないため、全てのテストをスキップします")
+        print("テスト実行には環境変数 JAGEOCODER_ENDPOINT を設定してください")
+        return 0  # スキップした場合は成功として扱う
     
     # Jageocoder APIのテスト
     test1_passed = test_jageocoder_api()
