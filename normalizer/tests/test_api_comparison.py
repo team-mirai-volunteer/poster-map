@@ -10,7 +10,7 @@ import requests
 import json
 
 # テスト環境設定を最初に実行
-from tests.test_config import setup_test_environment
+from .test_config import setup_test_environment
 setup_test_environment()
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'app')))

@@ -8,7 +8,7 @@ import sys
 import os
 
 # テスト環境設定を最初に実行
-from tests.test_config import setup_test_environment
+from .test_config import setup_test_environment
 setup_test_environment()
 
 def test_https_availability():
