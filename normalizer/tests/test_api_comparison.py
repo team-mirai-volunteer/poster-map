@@ -10,7 +10,7 @@ import requests
 import json
 
 # テスト環境設定を最初に実行
-from test_config import setup_test_environment
+from tests.test_config import setup_test_environment
 setup_test_environment()
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'app')))
@@ -174,50 +174,44 @@ def test_api_comparison():
         print("=" * 80)
         print("[SKIP] Jageocoderエンドポイントが設定されていないため、API比較テストをスキップします")
         print("テスト実行には環境変数 JAGEOCODER_ENDPOINT を設定してください")
-        return True  # スキップした場合は成功として扱う
-    
-    try:
-        test_api_responses_direct()
-        print("\n" + "=" * 80 + "\n")
-        analyze_data_source()
-        
-        # 実質的な検証を追加
-        test_address = "東京都中央区京橋1丁目19番13号"
-        area = "東京都"
-        
-        # 各APIで座標取得テスト
-        gsi_lat, gsi_lon = get_gsi_latlng(test_address)
-        jageocoder_lat, jageocoder_lon = get_jageocoder_latlng(test_address, area)
-        
-        # 最低限の座標取得検証
-        valid_apis = []
-        if gsi_lat is not None and gsi_lon is not None:
-            valid_apis.append("GSI")
-            # 日本の座標範囲内であることを検証
-            assert 20 <= gsi_lat <= 46, f"GSI latitude {gsi_lat} is outside Japan range"
-            assert 122 <= gsi_lon <= 154, f"GSI longitude {gsi_lon} is outside Japan range"
-        
-        if jageocoder_lat is not None and jageocoder_lon is not None:
-            valid_apis.append("Jageocoder")
-            # 日本の座標範囲内であることを検証
-            assert 20 <= jageocoder_lat <= 46, f"Jageocoder latitude {jageocoder_lat} is outside Japan range"
-            assert 122 <= jageocoder_lon <= 154, f"Jageocoder longitude {jageocoder_lon} is outside Japan range"
-        
-        # 最低1つのAPIで座標が取得できることを検証
-        assert len(valid_apis) >= 1, f"どのAPIでも座標が取得できませんでした。利用可能なAPI: {valid_apis}"
-        print(f"検証成功: {len(valid_apis)}個のAPIで座標を取得 ({', '.join(valid_apis)})")
-        
-        # 複数のAPIで座標が取得できた場合は距離を検証
-        if len(valid_apis) >= 2 and gsi_lat is not None and jageocoder_lat is not None:
-            distance = haversine(gsi_lat, gsi_lon, jageocoder_lat, jageocoder_lon)
-            print(f"API間の距離: {distance:.1f}m")
-            # 距離が異常に大きくないことを検証（50km以内）
-            assert distance <= 50000, f"API間の距離が異常に大きい: {distance:.1f}m"
-            
-        return True
-    except Exception as e:
-        print(f"Error: {e}")
-        return False
+        return  # スキップした場合は成功として扱う
+
+    test_api_responses_direct()
+    print("\n" + "=" * 80 + "\n")
+    analyze_data_source()
+
+    # 実質的な検証を追加
+    test_address = "東京都中央区京橋1丁目19番13号"
+    area = "東京都"
+
+    # 各APIで座標取得テスト
+    gsi_lat, gsi_lon = get_gsi_latlng(test_address)
+    jageocoder_lat, jageocoder_lon = get_jageocoder_latlng(test_address, area)
+
+    # 最低限の座標取得検証
+    valid_apis = []
+    if gsi_lat is not None and gsi_lon is not None:
+        valid_apis.append("GSI")
+        # 日本の座標範囲内であることを検証
+        assert 20 <= gsi_lat <= 46, f"GSI latitude {gsi_lat} is outside Japan range"
+        assert 122 <= gsi_lon <= 154, f"GSI longitude {gsi_lon} is outside Japan range"
+
+    if jageocoder_lat is not None and jageocoder_lon is not None:
+        valid_apis.append("Jageocoder")
+        # 日本の座標範囲内であることを検証
+        assert 20 <= jageocoder_lat <= 46, f"Jageocoder latitude {jageocoder_lat} is outside Japan range"
+        assert 122 <= jageocoder_lon <= 154, f"Jageocoder longitude {jageocoder_lon} is outside Japan range"
+
+    # 最低1つのAPIで座標が取得できることを検証
+    assert len(valid_apis) >= 1, f"どのAPIでも座標が取得できませんでした。利用可能なAPI: {valid_apis}"
+    print(f"検証成功: {len(valid_apis)}個のAPIで座標を取得 ({', '.join(valid_apis)})")
+
+    # 複数のAPIで座標が取得できた場合は距離を検証
+    if len(valid_apis) >= 2 and gsi_lat is not None and jageocoder_lat is not None:
+        distance = haversine(gsi_lat, gsi_lon, jageocoder_lat, jageocoder_lon)
+        print(f"API間の距離: {distance:.1f}m")
+        # 距離が異常に大きくないことを検証（50km以内）
+        assert distance <= 50000, f"API間の距離が異常に大きい: {distance:.1f}m"
 
 if __name__ == "__main__":
     result = test_api_comparison()

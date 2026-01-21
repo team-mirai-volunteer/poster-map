@@ -4,7 +4,7 @@ import sys
 import os
 
 # テスト環境設定を最初に実行
-from test_config import setup_test_environment
+from tests.test_config import setup_test_environment
 setup_test_environment()
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'app')))
@@ -28,14 +28,14 @@ def test_jageocoder_api():
     Test Jageocoder API functionality
     """
     print("=== Test: Jageocoder API ===")
-    
+
     # エンドポイント有効性チェック
     if not check_jageocoder_endpoints():
-        return False
-    
+        return
+
     print(f"使用エンドポイント: {API_ENDPOINTS['jageocoder']}")
     print(f"逆引きエンドポイント: {API_ENDPOINTS['jageocoder_reverse']}")
-    
+
     test_addresses = [
         {
             "address": "東京都中央区京橋1丁目19番13号",
@@ -53,70 +53,70 @@ def test_jageocoder_api():
             "description": "大阪市北区梅田の住所"
         }
     ]
-    
+
     all_passed = True
-    
+
     for case in test_addresses:
         print(f"\nテスト: {case['description']}")
         print(f"住所: {case['address']}")
-        
+
         # Jageocoder APIで座標取得
         lat, lon = get_jageocoder_latlng(case['address'], case.get('area'))
-        
+
         if lat is not None and lon is not None:
             print(f"[OK] Jageocoder座標: {lat:.6f}, {lon:.6f}")
-            
+
             # 座標の妥当性検証
             assert isinstance(lat, (int, float)), f"緯度が数値型ではありません: {type(lat)}"
             assert isinstance(lon, (int, float)), f"経度が数値型ではありません: {type(lon)}"
             assert 20 <= lat <= 46, f"緯度 {lat} が日本の範囲外です"
             assert 122 <= lon <= 154, f"経度 {lon} が日本の範囲外です"
-            
+
         else:
             print(f"[NG] Jageocoderで座標を取得できませんでした")
             all_passed = False
-    
-    return all_passed
+
+    assert all_passed, "Some Jageocoder API tests failed"
 
 def test_api_comparison():
     """
     3つのAPIの結果を比較するテスト
     """
     print("\n=== Test: API結果の比較 ===")
-    
+
     # エンドポイント有効性チェック
     if not check_jageocoder_endpoints():
-        return False
-    
+        return
+
     # テスト用の住所
     address = "東京都中央区京橋1丁目19番13号"
     area = "東京都"
-    
+
     print(f"テスト住所: {address}")
-    
+
     # 各APIで座標取得
     lat_jageocoder, lon_jageocoder = get_jageocoder_latlng(address, area)
     lat_gsi, lon_gsi = get_gsi_latlng(address)
-    
+
     # Google Maps APIキーがある場合のみテスト
     api_key = os.environ.get("GOOGLE_MAPS_API_KEY")
     lat_google, lon_google = (None, None)
     if api_key:
         lat_google, lon_google = get_gmap_latlng(address, api_key)
-    
+
     results = []
     if lat_jageocoder is not None:
         results.append(("Jageocoder", lat_jageocoder, lon_jageocoder))
         print(f"Jageocoder: {lat_jageocoder:.6f}, {lon_jageocoder:.6f}")
-    
+
     if lat_gsi is not None:
         results.append(("国土地理院", lat_gsi, lon_gsi))
         print(f"国土地理院: {lat_gsi:.6f}, {lon_gsi:.6f}")
-    
+
     if lat_google is not None:
         results.append(("Google", lat_google, lon_google))
         print(f"Google: {lat_google:.6f}, {lon_google:.6f}")
-    
+
     # 座標間の距離を計算と検証
     if len(results) >= 2:
         print("\n座標間の距離:")
@@ -126,38 +126,36 @@ def test_api_comparison():
                 name2, lat2, lon2 = results[j]
                 distance = haversine(lat1, lon1, lat2, lon2)
                 print(f"  {name1} - {name2}: {distance:.1f}m")
-                
+
                 # 距離の妥当性検証（異常に大きくないことを確認）
                 assert distance >= 0, f"距離が負数です: {distance}"
                 assert distance <= 100000, f"API間の距離が異常に大きい: {distance:.1f}m"
-    
+
     # 最低限1つのAPIで座標が取得できることを検証
     assert len(results) > 0, "どのAPIでも座標を取得できませんでした"
-    
-    return len(results) > 0
 
 def test_reverse_geocoding():
     """
     逆ジオコーディング機能のテスト
     """
     print("\n=== Test: 逆ジオコーディング ===")
-    
+
     # エンドポイント有効性チェック
     if not check_jageocoder_endpoints():
-        return False
-    
+        return
+
     # テスト用の座標（東京駅周辺）
     test_coords = [
         {"lat": 35.681236, "lon": 139.767125, "description": "東京駅周辺"},
         {"lat": 35.677975, "lon": 139.774460, "description": "中央区京橋付近"},
     ]
-    
+
     api_key = os.environ.get("GOOGLE_MAPS_API_KEY")
-    
+
     for coord in test_coords:
         print(f"\nテスト座標: {coord['description']}")
         print(f"緯度経度: {coord['lat']:.6f}, {coord['lon']:.6f}")
-        
+
         # Google逆ジオコーディング
         if api_key:
             google_addr = reverse_geocode_google(coord['lat'], coord['lon'], api_key)
@@ -167,15 +165,13 @@ def test_reverse_geocoding():
                 print("Google逆引き: [NG] 取得失敗")
         else:
             print("Google逆引き: [SKIP] APIキーなし")
-        
+
         # Jageocoder逆ジオコーディング
         jageocoder_addr = reverse_geocode_jageocoder(coord['lat'], coord['lon'])
         if jageocoder_addr:
             print(f"Jageocoder逆引き: {jageocoder_addr}")
         else:
             print("Jageocoder逆引き: [NG] 取得失敗")
-    
-    return True
 
 def test_comprehensive_geocoding():
     """
@@ -183,29 +179,29 @@ def test_comprehensive_geocoding():
     """
     # エンドポイント有効性チェック
     if not check_jageocoder_endpoints():
-        return False
+        return
     print("\n=== Test: 包括的ジオコーディング ===")
-    
+
     test_address = "東京都中央区京橋1丁目19番13号"
     area = "東京都"
-    
+
     print(f"元の住所: {test_address}")
-    
+
     # 各APIで座標を取得
     coords = {}
-    
+
     # Jageocoder
     lat, lon = get_jageocoder_latlng(test_address, area)
     if lat and lon:
         coords["jageocoder"] = (lat, lon)
         print(f"Jageocoder座標: {lat:.6f}, {lon:.6f}")
-    
+
     # 国土地理院
     lat, lon = get_gsi_latlng(test_address)
     if lat and lon:
         coords["gsi"] = (lat, lon)
         print(f"国土地理院座標: {lat:.6f}, {lon:.6f}")
-    
+
     # Google（APIキーがある場合のみ）
     api_key = os.environ.get("GOOGLE_MAPS_API_KEY")
     if api_key:
@@ -213,13 +209,13 @@ def test_comprehensive_geocoding():
         if lat and lon:
             coords["google"] = (lat, lon)
             print(f"Google座標: {lat:.6f}, {lon:.6f}")
-    
+
     # 各座標で逆ジオコーディングを試行
     if coords:
         print("\n逆ジオコーディング結果:")
         for api_name, (lat, lon) in coords.items():
             print(f"\n{api_name}の座標({lat:.6f}, {lon:.6f})から:")
-            
+
             # Google逆引き
             if api_key:
                 reverse_addr = reverse_geocode_google(lat, lon, api_key)
@@ -227,15 +223,15 @@ def test_comprehensive_geocoding():
                     print(f"  Google逆引き: {reverse_addr}")
                 else:
                     print(f"  Google逆引き: [NG] 取得失敗")
-            
+
             # Jageocoder逆引き
             reverse_addr = reverse_geocode_jageocoder(lat, lon)
             if reverse_addr:
                 print(f"  Jageocoder逆引き: {reverse_addr}")
             else:
                 print(f"  Jageocoder逆引き: [NG] 取得失敗")
-    
-    return len(coords) > 0
+
+    assert len(coords) > 0, "どのAPIでも座標を取得できませんでした"
 
 def main():
     print("Jageocoder API統合テスト")
