@@ -52,7 +52,6 @@ jobs:
   deploy-map2csv:
     name: Deploy Map2CSV to Cloud Run
     runs-on: ubuntu-latest
-    needs: [test-normalizer]
     if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
     defaults:
       run:
@@ -96,7 +95,6 @@ jobs:
   deploy-normalizer:
     name: Deploy Normalizer to Cloud Run
     runs-on: ubuntu-latest
-    needs: [test-normalizer]
     if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
     defaults:
       run:
