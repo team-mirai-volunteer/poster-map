@@ -214,5 +214,12 @@ def test_api_comparison():
         assert distance <= 50000, f"API間の距離が異常に大きい: {distance:.1f}m"
 
 if __name__ == "__main__":
-    result = test_api_comparison()
-    sys.exit(0 if result else 1)
+    try:
+        test_api_comparison()
+        sys.exit(0)
+    except AssertionError as e:
+        print(f"Test failed: {e}")
+        sys.exit(1)
+    except Exception as e:
+        print(f"Unexpected error: {e}")
+        sys.exit(1)

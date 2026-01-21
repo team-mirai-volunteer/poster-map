@@ -96,6 +96,13 @@ def test_reverse_geocoding_validation():
 
 if __name__ == "__main__":
     print("Testing reverse geocoding functions...")
-    success = test_reverse_geocoding_validation()
-    print("Test completed!" if success else "Test failed!")
-    sys.exit(0 if success else 1)
+    try:
+        test_reverse_geocoding_validation()
+        print("Test completed!")
+        sys.exit(0)
+    except AssertionError as e:
+        print(f"Test failed: {e}")
+        sys.exit(1)
+    except Exception as e:
+        print(f"Unexpected error: {e}")
+        sys.exit(1)

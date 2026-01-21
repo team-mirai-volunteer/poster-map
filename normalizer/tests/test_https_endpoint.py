@@ -157,5 +157,12 @@ def test_https_endpoints():
                 assert successful_responses > 0, f"テストしたエンドポイント {endpoints_tested} 個のうち、1個も応答しませんでした"
 
 if __name__ == "__main__":
-    result = test_https_endpoints()
-    sys.exit(0 if result else 1)
+    try:
+        test_https_endpoints()
+        sys.exit(0)
+    except AssertionError as e:
+        print(f"Test failed: {e}")
+        sys.exit(1)
+    except Exception as e:
+        print(f"Unexpected error: {e}")
+        sys.exit(1)
