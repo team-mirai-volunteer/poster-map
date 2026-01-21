@@ -48,52 +48,11 @@ jobs:
           python test_integration.py
           python test_reverse_geocoding.py
 
-  lint-frontend:
-    name: Lint Frontend
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          cache: 'npm'
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Run linter
-        run: npm run lint
-
-  build-frontend:
-    name: Build Frontend
-    runs-on: ubuntu-latest
-    needs: [lint-frontend]
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          cache: 'npm'
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Build application
-        run: npm run build
-        env:
-          DATABASE_URL: ${{ secrets.DATABASE_URL }}
-
   # Deploy jobs - only run on push to main/master
   deploy-map2csv:
     name: Deploy Map2CSV to Cloud Run
     runs-on: ubuntu-latest
-    needs: [test-normalizer, build-frontend]
+    needs: [test-normalizer]
     if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
     defaults:
       run:
@@ -137,7 +96,7 @@ jobs:
   deploy-normalizer:
     name: Deploy Normalizer to Cloud Run
     runs-on: ubuntu-latest
-    needs: [test-normalizer, build-frontend]
+    needs: [test-normalizer]
     if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
     defaults:
       run:
@@ -179,48 +138,3 @@ jobs:
             --timeout 3600 \
             --max-instances 10 \
             --service-account=${{ secrets.SA_NORMALIZER }}
-
-  deploy-pdf-converter:
-    name: Deploy PDF Converter to Cloud Run
-    runs-on: ubuntu-latest
-    needs: [test-normalizer, build-frontend]
-    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
-    defaults:
-      run:
-        working-directory: ./pdf-converter
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Authenticate to Google Cloud
-        uses: google-github-actions/auth@v2
-        with:
-          workload_identity_provider: ${{ secrets.WIF_PROVIDER }}
-          service_account: ${{ secrets.WIF_SERVICE_ACCOUNT }}
-
-      - name: Set up Cloud SDK
-        uses: google-github-actions/setup-gcloud@v2
-
-      - name: Configure Docker for Artifact Registry
-        run: gcloud auth configure-docker ${{ env.REGION }}-docker.pkg.dev
-
-      - name: Build and push Docker image
-        run: |
-          docker build --platform linux/amd64 -t pdf-converter .
-          docker tag pdf-converter ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/pdf-converter/pdf-converter
-          docker push ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/pdf-converter/pdf-converter
-        env:
-          PROJECT_ID: ${{ env.PROJECT_ID }}
-
-      - name: Deploy to Cloud Run
-        run: |
-          gcloud run deploy pdf-converter \
-            --image ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/pdf-converter/pdf-converter \
-            --platform managed \
-            --region ${{ env.REGION }} \
-            --allow-unauthenticated \
-            --memory 2Gi \
-            --cpu 2 \
-            --timeout 3600 \
-            --port 8501 \
-            --set-secrets OPENROUTER_API_KEY=openrouter-api-key:latest

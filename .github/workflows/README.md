@@ -8,13 +8,10 @@ The CI/CD pipeline (`ci-cd.yml`) performs the following:
 
 ### On Pull Requests and Pushes to main/master:
 1. **Test Normalizer Service** - Runs Python integration tests
-2. **Lint Frontend** - Runs ESLint on Next.js code
-3. **Build Frontend** - Builds the Next.js application
 
 ### On Push to main/master only:
-4. **Deploy Map2CSV** - Builds and deploys to Cloud Run
-5. **Deploy Normalizer** - Builds and deploys to Cloud Run
-6. **Deploy PDF Converter** - Builds and deploys to Cloud Run
+2. **Deploy Map2CSV** - Builds and deploys to Cloud Run
+3. **Deploy Normalizer** - Builds and deploys to Cloud Run
 
 ## Required GitHub Secrets
 
@@ -31,10 +28,6 @@ You need to configure the following secrets in your GitHub repository settings (
 
 ### API Keys
 - `GOOGLE_MAPS_API_KEY` - Google Maps API key (for normalizer service)
-- `DATABASE_URL` - Database connection string (for frontend build)
-
-### Google Cloud Secrets
-The `openrouter-api-key` secret must be created in Google Cloud Secret Manager for the PDF converter service.
 
 ## Setting Up Workload Identity Federation
 
@@ -128,7 +121,7 @@ If you prefer to use service account keys instead of Workload Identity Federatio
 
 ## Testing the Pipeline
 
-1. Create a pull request to test the test and build jobs
+1. Create a pull request to test the test jobs
 2. Merge to main/master to trigger the deployment jobs
 3. Check the Actions tab in GitHub to monitor the workflow progress
 
@@ -150,10 +143,5 @@ make deploy
 
 # Test map2csv deployment
 cd map2csv
-make deploy
-
-# Test pdf-converter deployment
-cd pdf-converter
-make push
 make deploy
 ```
