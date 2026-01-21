@@ -2,7 +2,7 @@
 
 import sys
 import os
-sys.path.append('app')
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'app')))
 
 from geo_processor import clean_address_duplicates
 
@@ -55,16 +55,23 @@ def test_integration_duplicate_removal():
         passed = result == case["expected"]
         all_passed = all_passed and passed
         
+        # pytest用の明示的なアサーション
+        assert result == case["expected"], f"Test Case {i} failed: expected '{case['expected']}', got '{result}'"
+        
         print(f"Test Case {i}: {case['description']}")
         print(f"  Prefecture: {case['prefecture']}")
         print(f"  City: {case['city']}")
         print(f"  Input Address: {case['address']}")
         print(f"  Expected: {case['expected']}")
         print(f"  Got: {result}")
-        print(f"  Result: {'✅ PASS' if passed else '❌ FAIL'}")
+        print(f"  Result: {'[PASS]' if passed else '[FAIL]'}")
         print()
     
-    print(f"Overall Result: {'✅ ALL TESTS PASSED' if all_passed else '❌ SOME TESTS FAILED'}")
+    print(f"Overall Result: {'[SUCCESS] ALL TESTS PASSED' if all_passed else '[FAILED] SOME TESTS FAILED'}")
+    
+    # pytest用の最終アサーション
+    assert all_passed, "Some integration tests failed"
+    
     return all_passed
 
 if __name__ == "__main__":
