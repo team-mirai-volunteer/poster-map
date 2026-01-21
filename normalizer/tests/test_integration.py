@@ -68,11 +68,9 @@ def test_integration_duplicate_removal():
         print()
     
     print(f"Overall Result: {'[SUCCESS] ALL TESTS PASSED' if all_passed else '[FAILED] SOME TESTS FAILED'}")
-    
+
     # pytest用の最終アサーション
     assert all_passed, "Some integration tests failed"
-    
-    return all_passed
 
 if __name__ == "__main__":
     success = test_integration_duplicate_removal()

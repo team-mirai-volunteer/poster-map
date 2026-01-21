@@ -173,11 +173,9 @@ def test_mode_consistency():
         print("[SUCCESS] すべてのテストが成功しました")
     else:
         print("[FAILURE] 一部のテストが失敗しました")
-    
+
     # pytest用の最終アサーション
     assert all_passed, "Some mode consistency tests failed"
-    
-    return all_passed
 
 if __name__ == "__main__":
     success = test_mode_consistency()
