@@ -8,44 +8,95 @@ from geo_processor import (
     extract_address_like_text_from_last_row,
     get_prefecture_from_partial_address
 )
+from constants import API_ENDPOINTS
 
 st.set_page_config(page_title="CSV正規化ツール", layout="wide")
 
-# --- サイドバー: 設定項目 ---
 st.sidebar.title("設定")
+
+# エンドポイント設定状態の表示
+with st.sidebar.expander("📍 APIエンドポイント設定状態"):
+    st.write("**Google Maps API:**", "✅ 利用可能" if os.environ.get("GOOGLE_MAPS_API_KEY") else "❌ APIキー未設定")
+    st.write("**国土地理院API:**", "✅ 利用可能")
+    jageocoder_status = "✅ 利用可能" if API_ENDPOINTS.get("jageocoder") else "❌ エンドポイント未設定"
+    st.write("**Jageocoder API:**", jageocoder_status)
+    if not API_ENDPOINTS.get("jageocoder"):
+        st.warning("⚠️ JAGEOCODER_ENDPOINT環境変数が設定されていません")
+
 sleep_msec = st.sidebar.number_input("APIリクエスト間隔（ミリ秒）", min_value=0, max_value=5000, value=200, step=10)
 normalize_digits = st.sidebar.checkbox("漢数字をアラビア数字に変換", value=False)
 st.sidebar.markdown("---")
 st.sidebar.subheader("座標検証設定")
 mode = st.sidebar.selectbox(
     "検証モード", 
-    options=["distance", "reverse_geocode", "google_only"], 
-    format_func=lambda x: "距離チェック" if x=="distance" else "逆引きチェック" if x=="reverse_geocode" else "Googleのみ使用",
-    help="距離チェック：Google APIと国土地理院APIの座標を比較\n逆引きチェック：逆ジオコーディングで住所を検証\nGoogleのみ使用：国土地理院APIを一切使用しない"
+    options=["distance", "reverse_geocode", "google_only", "gsi_only", "jageocoder_only"], 
+    format_func=lambda x: {
+        "distance": "距離チェック",
+        "reverse_geocode": "逆引きチェック", 
+        "google_only": "Googleのみ使用",
+        "gsi_only": "国土地理院のみ使用",
+        "jageocoder_only": "Jageocoderのみ使用"
+    }.get(x, x),
+    help="距離チェック：複数のAPIの座標を比較して品質を検証\n逆引きチェック：逆ジオコーディングで住所を検証\nGoogleのみ：Google Maps APIのみ使用\n国土地理院のみ：国土地理院APIのみ使用\nJageocoderのみ：Jageocoder APIのみ使用"
 )
 
 if mode == "distance":
     st.sidebar.markdown("**距離チェック設定**")
-    gsi_check = st.sidebar.checkbox("Google＋国土地理院API両方を使う", value=True)
+    gsi_check = st.sidebar.checkbox("国土地理院APIを使う", value=True)
+    jageocoder_check = st.sidebar.checkbox("Jageocoder APIを使う", value=False)
     gsi_distance = st.sidebar.number_input("座標ズレ閾値（メートル）", value=200, min_value=0, max_value=10000, step=10)
-    priority = st.sidebar.selectbox("閾値超時に優先するAPI", options=["gsi", "google"], format_func=lambda x: "国土地理院" if x=="gsi" else "Google")
+    priority_options = ["google"]
+    priority_format = {"google": "Google"}
+    if gsi_check:
+        priority_options.append("gsi")
+        priority_format["gsi"] = "国土地理院"
+    if jageocoder_check:
+        priority_options.append("jageocoder")
+        priority_format["jageocoder"] = "Jageocoder"
+    priority = st.sidebar.selectbox("閾値超時に優先するAPI", options=priority_options, format_func=lambda x: priority_format[x])
     reverse_geocode_check = False
+    google_reverse_check = True
 elif mode == "reverse_geocode":
     st.sidebar.markdown("**逆引きチェック設定**")
-    reverse_geocode_check = st.sidebar.checkbox("逆ジオコーディングチェックを有効化", value=True, help="Google APIで取得した座標を逆引きして住所の一致を確認")
+    st.sidebar.info("取得した座標を逆引きして住所の一致を確認します。")
+    reverse_geocode_check = True
+    google_reverse_check = st.sidebar.checkbox("Google APIを使う", value=True, help="Google Mapsの逆ジオコーディングで住所を検証します")
+    jageocoder_check = st.sidebar.checkbox("Jageocoder APIを使う", value=False, help="Jageocoderの逆ジオコーディングで住所を検証します")
     gsi_check = True
     gsi_distance = 200
-    priority = "gsi"
-else:
+    priority_options = ["google", "gsi", "jageocoder"]
+    priority_format = {"google": "Google", "gsi": "国土地理院", "jageocoder": "Jageocoder"}
+    priority = st.sidebar.selectbox("逆引き不一致時に採用するAPI", options=priority_options, format_func=lambda x: priority_format[x], help="すべての逆引きが不一致の場合に使用するAPIを選択")
+elif mode == "google_only":
     st.sidebar.markdown("**Googleのみ使用設定**")
-    st.sidebar.info("国土地理院APIを一切使用せず、Google Maps APIのみで座標を取得します。")
+    st.sidebar.info("Google Geocoding APIのみで座標を取得します。")
     gsi_check = False
+    jageocoder_check = False
     gsi_distance = 200
     priority = "google"
     reverse_geocode_check = False
+    google_reverse_check = True
+elif mode == "gsi_only":
+    st.sidebar.markdown("**国土地理院のみ使用設定**")
+    st.sidebar.info("国土地理院APIのみで座標を取得します。APIキーは不要です。")
+    gsi_check = True
+    jageocoder_check = False
+    gsi_distance = 200
+    priority = "gsi"
+    reverse_geocode_check = False
+    google_reverse_check = False
+else:
+    st.sidebar.markdown("**Jageocoderのみ使用設定**")
+    st.sidebar.info("Jageocoder APIのみで座標を取得します。APIキーは不要です。")
+    gsi_check = False
+    jageocoder_check = True
+    gsi_distance = 200
+    priority = "jageocoder"
+    reverse_geocode_check = False
+    google_reverse_check = False
 
 st.title("📍 CSV正規化ツール")
-st.write("ポスター掲示場所等のCSVを正規化し、Google Maps APIを使って緯度経度を付与します。距離チェックまたは逆引きチェックで座標の品質を検証できます。")
+st.write("ポスター掲示場所等のCSVを正規化し、選択したAPIを使って緯度経度を付与します。複数のAPIで座標の品質を検証することもできます。")
 
 st.header("1. CSVファイルをアップロード")
 csv_file = st.file_uploader("CSVファイルを選択してください", type=["csv"])
@@ -55,7 +106,6 @@ if csv_file is not None:
     df = pd.read_csv(csv_file)
     st.success(f"CSVファイルを読み込みました（{len(df)}行のデータ）")
     st.subheader("データプレビュー")
-    # プレビュー時のみインデックス1始まりで表示
     df_view = df.copy()
     df_view.index = df_view.index + 1
     st.dataframe(df_view, height=400)
@@ -96,9 +146,24 @@ col_names = []
 if csv_file is not None and df is not None:
     col_names = df.columns.tolist()
     pref_val, city_val = guess_pref_city_vals(col_names, df, filename)
-    number_col_guess = next((c for c in col_names if "番号" in c or "No" in c or "NO" in c or "no" in c or "num" in c), col_names[0] if col_names else "")
-    addr_col_guess = next((c for c in col_names if "住" in c), col_names[0] if col_names else "")
-    name_col_guess = next((c for c in col_names if "名" in c), col_names[1] if len(col_names) > 1 else "")
+    
+    col_names_lower = [c.lower() for c in col_names]
+    
+    if "number" in col_names_lower:
+        number_col_guess = col_names[col_names_lower.index("number")]
+    else:
+        number_col_guess = next((c for c in col_names if "番号" in c or "number" in c.lower() or "no" in c.lower() or "num" in c.lower()), col_names[0] if col_names else "")
+    
+    if "address" in col_names_lower:
+        addr_col_guess = col_names[col_names_lower.index("address")]
+    else:
+        addr_col_guess = next((c for c in col_names if "住所" in c or "address" in c.lower() or "住" in c or "所在地" in c), col_names[0] if col_names else "")
+    
+    if "name" in col_names_lower:
+        name_col_guess = col_names[col_names_lower.index("name")]
+    else:
+        name_col_guess = next((c for c in col_names if "名称" in c or "name" in c.lower() or "名" in c or "施設" in c), col_names[1] if len(col_names) > 1 else "")
+    
     addr_right = extract_address_like_text_from_last_row(df)
     pref_val = get_prefecture_from_partial_address(city_val + addr_right, use_gsi=(mode != "google_only"))
 
@@ -120,6 +185,25 @@ output_columns = st.multiselect(
 
 st.header("3. 処理を実行")
 
+button_disabled = False
+validation_message = ""
+
+if mode == "distance" and not gsi_check and not jageocoder_check:
+    button_disabled = True
+    validation_message = "⚠️ 距離チェックモードでは、「国土地理院APIを使う」または「Jageocoder APIを使う」のいずれかにチェックを入れてください。"
+elif mode == "reverse_geocode" and not google_reverse_check and not jageocoder_check:
+    button_disabled = True
+    validation_message = "⚠️ 逆引きチェックモードでは、「Google APIを使う」または「Jageocoder APIを使う」のいずれかにチェックを入れてください。"
+elif mode == "jageocoder_only" and not API_ENDPOINTS.get("jageocoder"):
+    button_disabled = True
+    validation_message = "⚠️ JageocoderのみモードにはJAGEOCODER_ENDPOINT環境変数の設定が必要です。"
+elif jageocoder_check and not API_ENDPOINTS.get("jageocoder"):
+    button_disabled = True
+    validation_message = "⚠️ Jageocoder APIを使用するにはJAGEOCODER_ENDPOINT環境変数の設定が必要です。"
+
+if validation_message:
+    st.warning(validation_message)
+
 if 'log_lines' not in st.session_state:
     st.session_state.log_lines = []
 if 'warning_count' not in st.session_state:
@@ -140,14 +224,23 @@ def progress_callback(idx, total):
     progress_bar.progress(idx / total)
     status_text.text(f"処理中: {idx} / {total} 行")
 
-if st.button("CSV正規化を実行"):
+if st.button("CSV正規化を実行", disabled=button_disabled):
     st.session_state.log_lines = []
     st.session_state.warning_count = 0
     
     if df is not None:
         if "lat" in output_columns or "long" in output_columns:
-            if not os.environ.get("GOOGLE_MAPS_API_KEY"):
-                st.error("Google Maps APIキーが設定されていません。環境変数 GOOGLE_MAPS_API_KEY を設定してください。")
+            # Google APIが実際に必要な場合のチェック
+            google_api_needed = False
+            if mode == "google_only":
+                google_api_needed = True
+            elif mode == "distance" and not (gsi_check or jageocoder_check):
+                google_api_needed = True  # Googleのみが有効な場合
+            elif mode == "reverse_geocode" and google_reverse_check:
+                google_api_needed = True
+            
+            if google_api_needed and not os.environ.get("GOOGLE_MAPS_API_KEY"):
+                st.error("選択されたモードではGoogle Maps APIキーが必要です。環境変数 GOOGLE_MAPS_API_KEY を設定してください。")
                 st.stop()
         try:
             colmap = {col: idx for idx, col in enumerate(df.columns)}
@@ -178,6 +271,8 @@ if st.button("CSV正規化を実行"):
             info_placeholder = st.empty()
             info_placeholder.info("処理中…しばらくお待ちください")
             
+            actual_mode = mode
+            
             results = process_csv_data(
                 csv_data,
                 config,
@@ -186,8 +281,10 @@ if st.button("CSV正規化を実行"):
                 gsi_check=gsi_check,
                 gsi_distance=int(gsi_distance),
                 priority=priority,
-                mode=mode,
-                reverse_geocode_check=reverse_geocode_check
+                mode=actual_mode,
+                reverse_geocode_check=reverse_geocode_check,
+                jageocoder_check=jageocoder_check,
+                google_reverse_check=google_reverse_check
             )
             
             output_header = ["prefecture", "city"] + list(output_columns)
@@ -203,12 +300,18 @@ if st.button("CSV正規化を実行"):
             progress_bar.progress(1.0)
             status_text.text("完了")
             info_placeholder.empty()
-            msg = "処理完了！出力データをダウンロードできます"
+            
+            # 「緯度経度は怪しい」のカウント
+            total_rows = len(out_df)
+            suspicious_count = 0
+            if "note" in out_df.columns:
+                suspicious_count = sum(1 for note in out_df["note"] if "緯度経度は怪しい" in str(note))
+            
+            msg = f"処理完了！{total_rows}件中{suspicious_count}件({suspicious_count/total_rows*100:.1f}%)が緯度経度は怪しいとなりました。出力データをダウンロードできます"
             if st.session_state.warning_count > 0:
                 msg += f"。変換中に {st.session_state.warning_count} 件の警告が発生しました。"
             st.success(msg)
             
-            # ---出力プレビューもインデックス1始まりで---
             out_df_view = out_df.copy()
             out_df_view.index = out_df_view.index + 1
             st.dataframe(out_df_view, height=400)
