@@ -45,8 +45,8 @@ jobs:
 
       - name: Run tests
         run: |
-          python test_integration.py
-          python test_reverse_geocoding.py
+          python tests/test_integration.py
+          python tests/test_reverse_geocoding.py
 
   # Deploy jobs - only run on push to main/master
   deploy-map2csv:
