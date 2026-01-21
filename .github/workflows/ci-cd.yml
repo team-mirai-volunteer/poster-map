@@ -44,9 +44,7 @@ jobs:
           pip install pytest
 
       - name: Run tests
-        run: |
-          python tests/test_integration.py
-          python tests/test_reverse_geocoding.py
+        run: pytest
 
   # Deploy jobs - only run on push to main/master
   deploy-map2csv:
