@@ -90,17 +90,19 @@ def test_duplicate_removal():
 
 def test_reverse_geocoding_validation():
     """逆ジオコーディング検証テストのエントリポイント"""
-    try:
-        test_normalize_japanese_address()
-        test_addresses_roughly_match()
-        test_duplicate_removal()
-        return True
-    except Exception as e:
-        print(f"Error: {e}")
-        return False
+    test_normalize_japanese_address()
+    test_addresses_roughly_match()
+    test_duplicate_removal()
 
 if __name__ == "__main__":
     print("Testing reverse geocoding functions...")
-    success = test_reverse_geocoding_validation()
-    print("Test completed!" if success else "Test failed!")
-    sys.exit(0 if success else 1)
+    try:
+        test_reverse_geocoding_validation()
+        print("Test completed!")
+        sys.exit(0)
+    except AssertionError as e:
+        print(f"Test failed: {e}")
+        sys.exit(1)
+    except Exception as e:
+        print(f"Unexpected error: {e}")
+        sys.exit(1)
