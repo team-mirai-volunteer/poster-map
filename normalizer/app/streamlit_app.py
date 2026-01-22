@@ -12,6 +12,15 @@ from constants import API_ENDPOINTS
 
 st.set_page_config(page_title="CSV正規化ツール", layout="wide")
 
+# タイトル上部の余白を狭くするカスタムCSS
+st.markdown("""
+<style>
+    .block-container {
+        padding-top: 2rem;
+    }
+</style>
+""", unsafe_allow_html=True)
+
 st.sidebar.title("設定")
 
 # エンドポイント設定状態の表示
@@ -178,20 +187,26 @@ if csv_file is not None and df is not None:
     pref_val = get_prefecture_from_partial_address(city_val + addr_right, use_gsi=(mode != "google_only"))
 
 st.header("2. 設定を構成")
-pref_val = st.text_input("都道府県（prefecture: 固定値）", value=pref_val)
-city_val = st.text_input("市区町村（city: 固定値）", value=city_val)
 
-# district列の選択（オプション）
-district_options = ["なし"] + (col_names if col_names else [])
-if district_col_guess and district_col_guess in col_names:
-    district_default_index = district_options.index(district_col_guess)
-else:
-    district_default_index = 0  # "なし"
-district_col = st.selectbox("選挙区列（district: オプション）", district_options, index=district_default_index, help="選挙区情報がある場合に選択してください。「なし」を選択すると出力CSVにdistrict列は含まれません。")
+# 2列レイアウトで設定項目を表示
+col1, col2 = st.columns(2)
 
-number_col = st.selectbox("番号列（number）", col_names if col_names else [""], index=col_names.index(number_col_guess) if number_col_guess in col_names else 0)
-addr_col = st.selectbox("住所列（address）", col_names if col_names else [""], index=col_names.index(addr_col_guess) if addr_col_guess in col_names else 0)
-name_col = st.selectbox("名称列（name）", col_names if col_names else [""], index=col_names.index(name_col_guess) if name_col_guess in col_names else 0)
+with col1:
+    pref_val = st.text_input("都道府県（prefecture: 固定値）", value=pref_val)
+    city_val = st.text_input("市区町村（city: 固定値）", value=city_val)
+
+    # district列の選択（オプション）
+    district_options = ["なし"] + (col_names if col_names else [])
+    if district_col_guess and district_col_guess in col_names:
+        district_default_index = district_options.index(district_col_guess)
+    else:
+        district_default_index = 0  # "なし"
+    district_col = st.selectbox("選挙区列（district: 衆院選では必須）", district_options, index=district_default_index, help="選挙区情報がある場合に選択してください。「なし」を選択すると出力CSVにdistrict列は含まれません。")
+
+with col2:
+    number_col = st.selectbox("番号列（number）", col_names if col_names else [""], index=col_names.index(number_col_guess) if number_col_guess in col_names else 0)
+    addr_col = st.selectbox("住所列（address）", col_names if col_names else [""], index=col_names.index(addr_col_guess) if addr_col_guess in col_names else 0)
+    name_col = st.selectbox("名称列（name）", col_names if col_names else [""], index=col_names.index(name_col_guess) if name_col_guess in col_names else 0)
 
 # output_candidatesとdefault_outputsはdistrict列の選択状態によって変わる
 if district_col == "なし":
