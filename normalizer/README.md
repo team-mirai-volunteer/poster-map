@@ -55,7 +55,8 @@ pip install -r requirements.txt
 cp .env.example .env
 # .envファイルを編集して以下を設定：
 # - GOOGLE_MAPS_API_KEY: Google APIを使用する場合（必須）
-# - JAGEOCODER_ENDPOINT: Jageocoder APIを使用する場合（オプション）
+# - JAGEOCODER_ENDPOINT: Jageocoder APIのカスタムエンドポイントを使用する場合（オプション）
+#   デフォルト: https://jageocoder.tsuruharu.com/
 #   例: JAGEOCODER_ENDPOINT=https://your-server.example.com
 ```
 
@@ -188,10 +189,18 @@ number,address,name
 
 処理後のCSVは以下の形式で出力されます：
 
+#### district列なしの場合:
 ```csv
 prefecture,city,number,address,name,lat,long
 東京都,中央区,1-1,京橋１丁目１９番１３号先,楓川久安橋公園,35.677349,139.7740739
 東京都,中央区,1-2,京橋２丁目１８番１号先,弾正橋北西側欄干,35.6752085,139.7727527
+```
+
+#### district列ありの場合:
+```csv
+prefecture,city,district,number,address,name,lat,long
+東京都,中央区,東京1区,1-1,京橋１丁目１９番１３号先,楓川久安橋公園,35.677349,139.7740739
+東京都,中央区,東京2区,1-2,京橋２丁目１８番１号先,弾正橋北西側欄干,35.6752085,139.7727527
 ```
 
 ## ⚙️ 設定オプション
@@ -255,10 +264,20 @@ APIの利用制限を避けるため、APIコール間の待機時間を設定�
 ## 🔒 セキュリティ
 
 - **APIキーの管理**: 本番環境では環境変数またはSecret Managerを使用
-- **外部APIエンドポイント設定**: セキュリティ強化のため、Jageocoderエンドポイントはデフォルトで無効化
-  - 使用する場合は環境変数 `JAGEOCODER_ENDPOINT` でベースURLを設定（システムが自動的に`/geocode`と`/rgeocode`パスを付加）
-  - 本番・テスト環境で同一の環境変数を使用（設定の統一化）
-  - カスタムエンドポイントも環境変数で設定可能
+- **外部APIエンドポイント設定**:
+  - **Jageocoderのデフォルトエンドポイント**: `https://jageocoder.tsuruharu.com/` をデフォルトで使用
+    - **意図的なデフォルト設定**: ユーザーの利便性向上のため、信頼できるJageocoderサーバーをデフォルトで設定
+    - **信頼性基準**:
+      - 公開されているJageocoder公式サーバー
+      - HTTPS通信による暗号化
+      - 無料利用可能でAPIキー不要
+      - 日本の住所ジオコーディングに特化
+      - 複数の自治体・プロジェクトで使用実績あり
+    - **カスタマイズ可能**: 環境変数 `JAGEOCODER_ENDPOINT` で別のエンドポイントに変更可能
+      - 例: `JAGEOCODER_ENDPOINT=https://your-server.example.com`
+      - システムが自動的に `/geocode` と `/rgeocode` パスを付加
+  - **Google/国土地理院API**: デフォルトエンドポイントは公式APIサーバー
+  - **本番・テスト環境**: 同一の環境変数を使用（設定の統一化）
 - **設定値のカスタマイズ**: タイムアウト値や閾値も環境変数で制御可能
 - **アクセス制御**: Cloud Runでの認証設定が可能
 - **ログ管理**: 機密情報がログに出力されないよう配慮
@@ -335,23 +354,39 @@ gcloud logs read --service=csv-normalizer --limit=50
 
 ## 📝 更新履歴
 
+### v2.3.0
+- **district列（選挙区列）サポート**:
+  - district列をオプションで出力CSVに含める機能を追加
+  - 「選挙区」「地区」「district」を含む列名を自動検出
+  - prefecture, city, **district**, number, address, name, lat, long の順で出力
+  - 「なし」を選択するとdistrict列を除外可能
+- **UI改善**:
+  - 設定項目を2列レイアウトに変更し、見やすさを向上
+  - タイトル上部の余白を縮小してスペースを有効活用
+  - 選挙区列のプルダウンを市区町村の直後に配置
+- **列マッピング改善**:
+  - 「掲示場番号」「掲示板番号」を含む列をnumber列として優先マッピング
+- **Jageocoderデフォルトエンドポイント設定**:
+  - `https://jageocoder.tsuruharu.com/` をデフォルトで使用
+  - 環境変数未設定でもJageocoder APIが利用可能に
+  - 環境変数 `JAGEOCODER_ENDPOINT` で別のエンドポイントに変更可能
+- **テストコード拡充**:
+  - district列機能の包括的なテストを追加（4つのテスト関数）
+  - 全18テストでカバレッジを維持
+
 ### v2.2.0
-- **環境変数統一化**: 
+- **環境変数統一化**:
   - `JAGEOCODER_ENDPOINT`を1つのベースURLで設定するように統一
   - システムが自動的に`/geocode`と`/rgeocode`パスを付加する仕組みに変更
   - `TEST_JAGEOCODER_BASE_URL`を`JAGEOCODER_ENDPOINT`に統合し、本番・テスト環境で同一設定を使用
-- **セキュリティ強化**: 
-  - すべてのハードコードされたJageocoderエンドポイントを除去
-  - デフォルトでJageocoderエンドポイントを無効化、明示的な設定が必要
-  - .env.exampleファイルから具体的なサーバーURLを削除
-- **UI改善**: 
+- **UI改善**:
   - APIエンドポイント設定状態の表示機能を追加
   - Jageocoder API使用時の環境変数設定チェックとエラー表示
   - 設定不備時の詳細な警告メッセージ
-- **テスト機能改善**: 
+- **テスト機能改善**:
   - test_all.pyでJageocoderエンドポイント未設定時の適切なスキップ処理
   - 全テストが環境変数ベースで動作するように統一
-- **.envファイル読み込み修正**: 
+- **.envファイル読み込み修正**:
   - プロジェクトルートの.envファイルが正しく読み込まれるように修正
   - ローカル開発環境での環境変数読み込み問題を解決
 
