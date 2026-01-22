@@ -17,7 +17,7 @@ def run_all_tests():
     """すべてのテストを実行"""
     print("=" * 60)
     print("CSV正規化ツール 統合テスト")
-    print("すべての利用可能なテストファイルを実行します")
+    print("すべての利用可能なテストファイルを実行します（7種類のテスト）")
     print("=" * 60)
     
     all_passed = True
@@ -108,7 +108,7 @@ def run_all_tests():
     all_passed = all_passed and test5_passed
     
     # 6. モード一貫性テスト
-    print("\n[6/6] モード一貫性テスト")
+    print("\n[6/7] モード一貫性テスト")
     print("-" * 40)
     try:
         from test_mode_consistency import test_mode_consistency
@@ -119,7 +119,29 @@ def run_all_tests():
         test6_passed = False
         test_results["モード一貫性テスト"] = False
     all_passed = all_passed and test6_passed
-    
+
+    # 7. district列機能テスト
+    print("\n[7/7] district列機能テスト")
+    print("-" * 40)
+    try:
+        from test_district_column import (
+            test_district_column_included,
+            test_district_column_excluded,
+            test_district_column_order,
+            test_district_with_special_characters
+        )
+        test_district_column_included()
+        test_district_column_excluded()
+        test_district_column_order()
+        test_district_with_special_characters()
+        test7_passed = True
+        test_results["district列機能テスト"] = test7_passed
+    except Exception as e:
+        print(f"エラー: {e}")
+        test7_passed = False
+        test_results["district列機能テスト"] = False
+    all_passed = all_passed and test7_passed
+
     # 結果のサマリー
     print("\n" + "=" * 60)
     print("テスト結果サマリー")
