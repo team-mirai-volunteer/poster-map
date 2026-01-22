@@ -8,7 +8,7 @@ import sys
 import os
 
 # テスト環境設定を最初に実行
-from test_config import setup_test_environment
+from .test_config import setup_test_environment
 setup_test_environment()
 
 def test_https_availability():
@@ -102,72 +102,67 @@ def test_https_availability():
     print("HTTPは非推奨です（住所情報の平文送信リスクあり）。")
 
 def test_https_endpoints():
-    """統合テスト用のエントリーポイント"""    
-    test_passed = True
-    
-    try:
-        # 環境変数からベースURLを取得（未設定の場合はスキップ）
-        base_url = os.environ.get("JAGEOCODER_ENDPOINT")
-        
-        if not base_url:
-            print("=" * 80)
-            print("[SKIP] JAGEOCODER_ENDPOINTが設定されていないため、HTTPSエンドポイントテストをスキップします")
-            print("テスト実行には環境変数 JAGEOCODER_ENDPOINT を設定してください")
-            return True  # スキップした場合は成功として扱う
-        
-        # HTTPSの有効性テストを実行
-        test_https_availability()
-        
-        # 具体的な成功条件をチェック
-        # 少なくとも1つのエンドポイントが応答する必要がある
-        endpoints_tested = 0
-        successful_responses = 0
-        
-        test_address = "東京都中央区京橋1丁目19番13号"
-        http_base = base_url.replace("https://", "http://")
-        https_base = base_url.replace("http://", "https://")
-        
-        for endpoint_name, endpoint_data in [
-            ("HTTPS Jageocoder", f"{https_base}/geocode"),
-            ("HTTP Jageocoder", f"{http_base}/geocode")
-        ]:
-            endpoints_tested += 1
-            try:
-                response = requests.get(
-                    endpoint_data,
-                    params={"addr": test_address},
-                    timeout=10
-                )
-                if response.status_code == 200:
-                    successful_responses += 1
-            except Exception:
-                pass  # 個別のエンドポイント失敗は許容
-        
-        # 最低限のアサーション: テストが実行されたことを確認
-        assert endpoints_tested > 0, "No endpoints were tested"
-        
-        # 実質的な検証を追加
-        if endpoints_tested > 0:
-            success_rate = successful_responses / endpoints_tested
-            print(f"テスト完了: {endpoints_tested}個のエンドポイントをテスト, {successful_responses}個が成功 (成功率: {success_rate*100:.1f}%)")
-            
-            # 少なくとも1つのエンドポイントが機能することを確認（ネットワークテストのため緩い条件）
-            if endpoints_tested >= 1:
-                # オフライン環境等を考慮して、全て失敗でも警告のみにとどめる
-                if successful_responses == 0:
-                    print("警告: すべてのエンドポイントが応答しませんでした（ネットワーク環境を確認してください）")
-                else:
-                    assert successful_responses > 0, f"テストしたエンドポイント {endpoints_tested} 個のうち、1個も応答しませんでした"
-        
-    except AssertionError as e:
-        print(f"アサーションエラー: {e}")
-        test_passed = False
-    except Exception as e:
-        print(f"予期しないエラー: {e}")
-        test_passed = False
-    
-    return test_passed
+    """統合テスト用のエントリーポイント"""
+    # 環境変数からベースURLを取得（未設定の場合はスキップ）
+    base_url = os.environ.get("JAGEOCODER_ENDPOINT")
+
+    if not base_url:
+        print("=" * 80)
+        print("[SKIP] JAGEOCODER_ENDPOINTが設定されていないため、HTTPSエンドポイントテストをスキップします")
+        print("テスト実行には環境変数 JAGEOCODER_ENDPOINT を設定してください")
+        return  # スキップした場合は成功として扱う
+
+    # HTTPSの有効性テストを実行
+    test_https_availability()
+
+    # 具体的な成功条件をチェック
+    # 少なくとも1つのエンドポイントが応答する必要がある
+    endpoints_tested = 0
+    successful_responses = 0
+
+    test_address = "東京都中央区京橋1丁目19番13号"
+    http_base = base_url.replace("https://", "http://")
+    https_base = base_url.replace("http://", "https://")
+
+    for endpoint_name, endpoint_data in [
+        ("HTTPS Jageocoder", f"{https_base}/geocode"),
+        ("HTTP Jageocoder", f"{http_base}/geocode")
+    ]:
+        endpoints_tested += 1
+        try:
+            response = requests.get(
+                endpoint_data,
+                params={"addr": test_address},
+                timeout=10
+            )
+            if response.status_code == 200:
+                successful_responses += 1
+        except Exception:
+            pass  # 個別のエンドポイント失敗は許容
+
+    # 最低限のアサーション: テストが実行されたことを確認
+    assert endpoints_tested > 0, "No endpoints were tested"
+
+    # 実質的な検証を追加
+    if endpoints_tested > 0:
+        success_rate = successful_responses / endpoints_tested
+        print(f"テスト完了: {endpoints_tested}個のエンドポイントをテスト, {successful_responses}個が成功 (成功率: {success_rate*100:.1f}%)")
+
+        # 少なくとも1つのエンドポイントが機能することを確認（ネットワークテストのため緩い条件）
+        if endpoints_tested >= 1:
+            # オフライン環境等を考慮して、全て失敗でも警告のみにとどめる
+            if successful_responses == 0:
+                print("警告: すべてのエンドポイントが応答しませんでした（ネットワーク環境を確認してください）")
+            else:
+                assert successful_responses > 0, f"テストしたエンドポイント {endpoints_tested} 個のうち、1個も応答しませんでした"
 
 if __name__ == "__main__":
-    result = test_https_endpoints()
-    sys.exit(0 if result else 1)
+    try:
+        test_https_endpoints()
+        sys.exit(0)
+    except AssertionError as e:
+        print(f"Test failed: {e}")
+        sys.exit(1)
+    except Exception as e:
+        print(f"Unexpected error: {e}")
+        sys.exit(1)

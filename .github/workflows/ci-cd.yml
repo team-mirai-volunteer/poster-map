@@ -45,6 +45,8 @@ jobs:
 
       - name: Run tests
         run: pytest
+        env:
+          JAGEOCODER_ENDPOINT: ${{ secrets.JAGEOCODER_ENDPOINT }}
 
   # Deploy jobs - only run on push to main/master
   deploy-map2csv:
