@@ -12,6 +12,15 @@ from constants import API_ENDPOINTS
 
 st.set_page_config(page_title="CSV正規化ツール", layout="wide")
 
+# タイトル上部の余白を狭くするカスタムCSS
+st.markdown("""
+<style>
+    .block-container {
+        padding-top: 2rem;
+    }
+</style>
+""", unsafe_allow_html=True)
+
 st.sidebar.title("設定")
 
 # エンドポイント設定状態の表示
@@ -141,41 +150,71 @@ city_val = ""
 number_col_guess = ""
 addr_col_guess = ""
 name_col_guess = ""
+district_col_guess = ""
 
 col_names = []
 if csv_file is not None and df is not None:
     col_names = df.columns.tolist()
     pref_val, city_val = guess_pref_city_vals(col_names, df, filename)
-    
+
     col_names_lower = [c.lower() for c in col_names]
-    
+
     if "number" in col_names_lower:
         number_col_guess = col_names[col_names_lower.index("number")]
     else:
-        number_col_guess = next((c for c in col_names if "番号" in c or "number" in c.lower() or "no" in c.lower() or "num" in c.lower()), col_names[0] if col_names else "")
-    
+        # 「掲示場番号」「掲示板番号」を優先的にマッチ
+        number_col_guess = next((c for c in col_names if "掲示場番号" in c or "掲示板番号" in c), None)
+        if not number_col_guess:
+            number_col_guess = next((c for c in col_names if "番号" in c or "number" in c.lower() or "no" in c.lower() or "num" in c.lower()), col_names[0] if col_names else "")
+
     if "address" in col_names_lower:
         addr_col_guess = col_names[col_names_lower.index("address")]
     else:
         addr_col_guess = next((c for c in col_names if "住所" in c or "address" in c.lower() or "住" in c or "所在地" in c), col_names[0] if col_names else "")
-    
+
     if "name" in col_names_lower:
         name_col_guess = col_names[col_names_lower.index("name")]
     else:
         name_col_guess = next((c for c in col_names if "名称" in c or "name" in c.lower() or "名" in c or "施設" in c), col_names[1] if len(col_names) > 1 else "")
+
+    # district列の自動認識
+    if "district" in col_names_lower:
+        district_col_guess = col_names[col_names_lower.index("district")]
+    else:
+        district_col_guess = next((c for c in col_names if "選挙区" in c or "地区" in c or "district" in c.lower()), "")
     
     addr_right = extract_address_like_text_from_last_row(df)
     pref_val = get_prefecture_from_partial_address(city_val + addr_right, use_gsi=(mode != "google_only"))
 
 st.header("2. 設定を構成")
-pref_val = st.text_input("都道府県（prefecture: 固定値）", value=pref_val)
-city_val = st.text_input("市区町村（city: 固定値）", value=city_val)
-number_col = st.selectbox("番号列（number）", col_names if col_names else [""], index=col_names.index(number_col_guess) if number_col_guess in col_names else 0)
-addr_col = st.selectbox("住所列（address）", col_names if col_names else [""], index=col_names.index(addr_col_guess) if addr_col_guess in col_names else 0)
-name_col = st.selectbox("名称列（name）", col_names if col_names else [""], index=col_names.index(name_col_guess) if name_col_guess in col_names else 0)
 
-output_candidates = ["number", "address", "name", "lat", "long", "note"]
-default_outputs = ["number", "address", "name", "lat", "long", "note"]
+# 2列レイアウトで設定項目を表示
+col1, col2 = st.columns(2)
+
+with col1:
+    pref_val = st.text_input("都道府県（prefecture: 固定値）", value=pref_val)
+    city_val = st.text_input("市区町村（city: 固定値）", value=city_val)
+
+    # district列の選択（オプション）
+    district_options = ["なし"] + (col_names if col_names else [])
+    if district_col_guess and district_col_guess in col_names:
+        district_default_index = district_options.index(district_col_guess)
+    else:
+        district_default_index = 0  # "なし"
+    district_col = st.selectbox("選挙区列（district: 衆院選では必須）", district_options, index=district_default_index, help="選挙区情報がある場合に選択してください。「なし」を選択すると出力CSVにdistrict列は含まれません。")
+
+with col2:
+    number_col = st.selectbox("番号列（number）", col_names if col_names else [""], index=col_names.index(number_col_guess) if number_col_guess in col_names else 0)
+    addr_col = st.selectbox("住所列（address）", col_names if col_names else [""], index=col_names.index(addr_col_guess) if addr_col_guess in col_names else 0)
+    name_col = st.selectbox("名称列（name）", col_names if col_names else [""], index=col_names.index(name_col_guess) if name_col_guess in col_names else 0)
+
+# output_candidatesとdefault_outputsはdistrict列の選択状態によって変わる
+if district_col == "なし":
+    output_candidates = ["number", "address", "name", "lat", "long", "note"]
+    default_outputs = ["number", "address", "name", "lat", "long", "note"]
+else:
+    output_candidates = ["number", "district", "address", "name", "lat", "long", "note"]
+    default_outputs = ["number", "district", "address", "name", "lat", "long", "note"]
 output_columns = st.multiselect(
     "出力する列を選択してください",
     output_candidates,
@@ -254,6 +293,9 @@ if st.button("CSV正規化を実行", disabled=button_disabled):
             for col in output_columns:
                 if col == "number":
                     config["format"]["number"] = f"{{{colmap[number_col]+1}}}"
+                elif col == "district":
+                    if district_col != "なし":
+                        config["format"]["district"] = f"{{{colmap[district_col]+1}}}"
                 elif col == "address":
                     config["format"]["address"] = f"{{{colmap[addr_col]+1}}}"
                 elif col == "name":
@@ -287,11 +329,24 @@ if st.button("CSV正規化を実行", disabled=button_disabled):
                 google_reverse_check=google_reverse_check
             )
             
-            output_header = ["prefecture", "city"] + list(output_columns)
+            # 出力列の順序を調整（district列がある場合はcityとnumberの間に配置）
+            if "district" in output_columns:
+                # district列を含む場合：prefecture, city, district, number, address, name, lat, long, note
+                ordered_columns = []
+                ordered_columns.append("prefecture")
+                ordered_columns.append("city")
+                ordered_columns.append("district")
+                for col in output_columns:
+                    if col != "district":
+                        ordered_columns.append(col)
+                output_header = ordered_columns
+            else:
+                # district列がない場合：prefecture, city, number, address, name, lat, long, note
+                output_header = ["prefecture", "city"] + list(output_columns)
+
             out_df = pd.DataFrame(
                 [
-                    [row[results[0].index("prefecture")], row[results[0].index("city")]]
-                    + [row[results[0].index(col)] for col in output_columns]
+                    [row[results[0].index(col)] for col in output_header]
                     for row in results[1:]
                 ],
                 columns=output_header

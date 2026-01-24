@@ -19,11 +19,11 @@ API_DISPLAY_NAMES = {
     "jageocoder": "Jageocoder"
 }
 
-# セキュリティ: APIエンドポイントは環境変数で設定可能（デフォルトは無効）
+# セキュリティ: APIエンドポイントは環境変数で設定可能
 _DEFAULT_ENDPOINTS = {
     "google": "https://maps.googleapis.com/maps/api/geocode/json",
     "gsi": "https://msearch.gsi.go.jp/address-search/AddressSearch",
-    "jageocoder": ""  # デフォルトで無効化
+    "jageocoder": "https://jageocoder.tsuruharu.com/"  # デフォルトでJageocoderを使用
 }
 
 # JageocoderのベースURLから各エンドポイントを生成
