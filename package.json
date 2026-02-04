@@ -17,7 +17,7 @@
     "@prisma/client": "^6.8.2",
     "@supabase/supabase-js": "^2.49.8",
     "leaflet": "^1.9.4",
-    "next": "15.3.3",
+    "next": "15.3.8",
     "prisma": "^6.8.2",
     "react": "^19",
     "react-dom": "^19",
