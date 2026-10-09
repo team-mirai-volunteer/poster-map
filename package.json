@@ -17,7 +17,7 @@
     "@prisma/client": "^6.8.2",
     "@supabase/supabase-js": "^2.49.8",
     "leaflet": "^1.9.4",
-    "next": "15.3.3",
+    "next": "15.5.27",
     "prisma": "^6.8.2",
     "react": "^19",
     "react-dom": "^19",
@@ -29,7 +29,7 @@
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "eslint": "^8",
-    "eslint-config-next": "15.3.3",
+    "eslint-config-next": "15.5.27",
     "typescript": "^5"
   }
 }
